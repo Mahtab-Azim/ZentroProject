@@ -28,7 +28,7 @@ export default function Login() {
                             type={showPassword ? "text" : "password"}
                             placeholder="رمز عبور"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}X
+                            onChange={(e) => setPassword(e.target.value)}
                             className="w-full p-3 pl-12 border border-border rounded-lg text-right bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <button
