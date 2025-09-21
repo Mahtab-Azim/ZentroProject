@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function Login() {
     const [showPassword, setShowPassword] = useState(false)
@@ -47,13 +48,14 @@ export default function Login() {
                     )}
                 </div>
 
-                <button
+                <Button
                     type="submit"
+                    size="xl"
                     disabled={!isPasswordValid || password.length === 0}
-                    className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-lg hover:bg-primary/90 active:bg-primary/80 transition-colors cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full"
                 >
                     ورود
-                </button>
+                </Button>
             </div>
         </div>
     )
