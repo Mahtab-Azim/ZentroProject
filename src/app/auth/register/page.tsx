@@ -241,7 +241,10 @@ export default function RegisterPage() {
                             حساب کاربری دارید؟{' '}
                             <Link
                                 href="/auth/login"
-                                className="font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                                className="font-medium hover:underline transition-colors"
+                                style={{
+                                    color: 'oklch(0.6 0.2 240)'
+                                }}
                             >
                                 وارد شوید
                             </Link>
