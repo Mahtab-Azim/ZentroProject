@@ -34,7 +34,7 @@ export default function LoginPage() {
                 setError("خطا در ارسال ایمیل تایید")
             } else {
                 setError("")
-                // نمایش پیام موفقیت - ایمیل تایید ارسال شد
+                // show success massage
                 alert("لینک ورود به ایمیل شما ارسال شد")
             }
         } catch (err) {
@@ -130,7 +130,7 @@ export default function LoginPage() {
                             </div>
                         </div>
 
-                        {/* فراموشی رمز عبور */}
+                        {/* Forget Email */}
                         <div className="text-right">
                             <Link 
                                 href="/auth/forgot-password" 
@@ -169,7 +169,7 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    {/* لینک ثبت نام */}
+                    {/* SignIn Link */}
                     <div className="text-center pt-4 border-t border-gray-100">
                         <p className="text-sm text-gray-600">
                             حساب کاربری ندارید؟{' '}
