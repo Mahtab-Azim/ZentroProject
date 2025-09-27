@@ -133,7 +133,7 @@ export default function LoginPage() {
                         {/* Forget Email */}
                         <div className="text-right">
                             <Link 
-                                href="/auth/forgot-password" 
+                                href="/auth/forgotpassword" 
                                 className="text-sm font-medium hover:underline transition-colors"
                                 style={{
                                     color: 'oklch(0.6 0.2 240)'
