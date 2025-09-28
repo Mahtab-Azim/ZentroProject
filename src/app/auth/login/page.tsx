@@ -12,7 +12,6 @@ import Link from "next/link"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
-    const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isGoogleLoading, setIsGoogleLoading] = useState(false)
     const [error, setError] = useState("")
@@ -21,12 +20,16 @@ export default function LoginPage() {
 
     const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        //Request to React for change the State
         setIsLoading(true)
+        //make the error state empty, like there is no error yet
         setError("")
 
         try {
+            //Tell NextAuth to use Email Provider
             const result = await signIn("email", {
                 email,
+                //we make redirect false here because of the magic link, it will take time.
                 redirect: false,
             })
 
@@ -79,7 +82,9 @@ export default function LoginPage() {
                     {/* Google Login */}
                     <Button
                         onClick={handleGoogleLogin}
+                        //a default prop for HTML Button
                         disabled={isGoogleLoading}
+                        //variant is a prop for styling, for the login button
                         variant="outline"
                         className="w-full border-gray-200 hover:bg-gray-50"
                     >
