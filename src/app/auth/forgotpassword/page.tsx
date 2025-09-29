@@ -23,12 +23,14 @@ export default function ForgotPasswordPage() {
         setError("")
 
         try {
-            // rest password for call API 
+            // Post Request to API to send Recovery Email
             const response = await fetch('/api/auth/forgot-password', {
                 method: 'POST',
                 headers: {
+                    //telling to server that, the type of data im sending to you is JSON
                     'Content-Type': 'application/json',
                 },
+                //body is the content that i send to server
                 body: JSON.stringify({ email }),
             })
 
