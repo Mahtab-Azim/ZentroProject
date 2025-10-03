@@ -2,7 +2,7 @@
 
 export default function HomePage() {
   return (
-   <main className="flex items-center justify-center h-screen">
+   <main className="flex items-center justify-center min-h-screen pt-16">
     <h1 className="text-3xl font-bold">مدرن با زنترو!</h1>
    </main> 
   )
