@@ -19,11 +19,11 @@ export const metadata: Metadata = {
     title: "Zentro CRM | سیستم مدیریت ارتباط با مشتریان",
     description:
       "با Zentro CRM، تعاملات با مشتریان خود را آسان‌تر، سریع‌تر و هوشمندانه‌تر مدیریت کنید.",
-    url: "https://zentro.app", 
+    url: "https://zentro.app",
     siteName: "Zentro CRM",
     images: [
       {
-        url: "/og-image.jpg", 
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
       },
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Navbar />
         <main className="pt-16" >
-        {children}
+          {children}
         </main>
       </body>
     </html>
