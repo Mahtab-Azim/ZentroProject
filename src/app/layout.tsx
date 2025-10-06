@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
+import AuthProvider from "@/components/providers/SessionProvider";
 import "./globals.css";
-
 
 export const metadata: Metadata = {
   title: "Zentro CRM | مدیریت ارتباط با مشتریان",
@@ -33,14 +33,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="fa" dir="rtl">
       <body>
-        <Navbar />
-        <main className="pt-16" >
-          {children}
-        </main>
+        <AuthProvider>
+          <Navbar />
+          <main className="pt-16">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );
