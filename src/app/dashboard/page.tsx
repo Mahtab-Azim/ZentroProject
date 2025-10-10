@@ -25,9 +25,11 @@ export default function DashboardPage() {
       redirect('/auth/login');
     }
 
+    // in this situation call fetchDashboardData to reload the dashboard's data
     if (status === 'authenticated') {
       fetchDashboardData();
     }
+    //status is a dependence and any time it change, (like login to authenticated) the code inside useEffect execute again
   }, [status]);
 
   const fetchDashboardData = async () => {
@@ -60,6 +62,7 @@ export default function DashboardPage() {
     }
   };
 
+  //if the user is in loading or there is no session (like the user isn't authenticate yet), show a loader
   if (status === 'loading' || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
