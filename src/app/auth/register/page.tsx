@@ -1,36 +1,39 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff, User, Mail, Lock, CheckCircle2, XCircle } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '../../../components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Eye, EyeOff, User, Mail, Lock, CheckCircle2, XCircle } from 'lucide-react'
+import Link from 'next/link'
+
+const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
+  <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-600' : 'text-gray-400'}`}>
+    {met ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+    <span>{text}</span>
+  </div>
+)
 
 export default function RegisterPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
     email: '',
-    password: '',
-    confirmPassword: '',
-  });
+    full_name: '',
+    password: ''
+  })
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasUpperCase: false,
     hasLowerCase: false,
     hasNumber: false,
-    hasSpecialChar: false,
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+    hasSpecialChar: false
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const router = useRouter();
+  const router = useRouter()
 
   const checkPasswordStrength = (password: string) => {
     setPasswordStrength({
@@ -38,80 +41,77 @@ export default function RegisterPage() {
       hasUpperCase: /[A-Z]/.test(password),
       hasLowerCase: /[a-z]/.test(password),
       hasNumber: /\d/.test(password),
-      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    });
-  };
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    })
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    
-    if (name === 'password') {
-      checkPasswordStrength(value);
-    }
-  };
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
 
-  const isPasswordStrong = Object.values(passwordStrength).every(Boolean);
-  const doPasswordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== '';
+    if (name === 'password') {
+      checkPasswordStrength(value)
+    }
+  }
+
+  const isPasswordStrong = Object.values(passwordStrength).every(Boolean)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isPasswordStrong || !doPasswordsMatch) {
-      setError('لطفاً رمز عبور قوی و هماهنگ وارد کنید');
-      return;
-    }
+    e.preventDefault()
+    if (!isPasswordStrong) return
 
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true)
+    setError("")
 
     try {
-      // Step 1: Register با API
-      const registerResponse = await fetch('http://localhost:8000/api/users/register', {
+      const registerResponse = await fetch('http://127.0.0.1:8000/api/users/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          full_name: `${formData.firstName} ${formData.lastName}`,
+          full_name: formData.full_name,
           password: formData.password,
-          active: true,
+          active: true
         }),
-      });
+      })
 
       if (!registerResponse.ok) {
-        const errorData = await registerResponse.json();
-        throw new Error(errorData.detail?.[0]?.msg || errorData.message || 'ثبت‌نام ناموفق بود');
+        const errorData = await registerResponse.json()
+        throw new Error(errorData.detail?.[0]?.msg || errorData.detail || 'خطا در ثبت نام')
       }
 
-      console.log('✅ ثبت‌نام موفق');
+      console.log('ثبت نام موفق')
 
-      // Step 2: لاگین با NextAuth (این خودکار توکن رو می‌گیره و سشن رو ست می‌کنه)
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false, // خودمون redirect می‌کنیم
-      });
+      const formBody = new URLSearchParams()
+      formBody.append('username', formData.email)
+      formBody.append('password', formData.password)
+      formBody.append('grant_type', 'password')
 
-      if (result?.error) {
-        throw new Error('لاگین ناموفق بود. لطفاً دوباره تلاش کنید.');
+      const loginResponse = await fetch('http://127.0.0.1:8000/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody.toString()
+      })
+
+      if (!loginResponse.ok) {
+        throw new Error('ثبت نام موفق بود ولی لاگین خودکار انجام نشد')
       }
 
-      console.log('✅ لاگین موفق');
+      const loginData = await loginResponse.json()
 
-      // Step 3: Redirect به dashboard
-      router.push('/dashboard');
+      localStorage.setItem('access_token', loginData.access_token)
+      localStorage.setItem('refresh_token', loginData.refresh_token)
+
+      console.log('لاگین خودکار موفق')
+      router.push('/dashboard')
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطای ناشناخته');
+      console.error('خطا:', err)
+      setError(err instanceof Error ? err.message : 'خطایی رخ داد')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-    <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-600' : 'text-gray-400'}`}>
-      {met ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-      <span>{text}</span>
-    </div>
-  );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 pt-20">
@@ -136,35 +136,21 @@ export default function RegisterPage() {
 
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="firstName" className="text-sm font-medium text-gray-700">
-                  نام
-                </Label>
+            <div className="space-y-2">
+              <Label htmlFor="full_name" className="text-sm font-medium text-gray-700">
+                نام کامل
+              </Label>
+              <div className="relative">
+                <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  id="firstName"
-                  name="firstName"
+                  id="full_name"
+                  name="full_name"
                   type="text"
-                  placeholder="نام خود را وارد کنید"
-                  value={formData.firstName}
+                  placeholder="نام و نام خانوادگی خود را وارد کنید"
+                  value={formData.full_name}
                   onChange={handleInputChange}
                   required
-                  className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName" className="text-sm font-medium text-gray-700">
-                  نام خانوادگی
-                </Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  placeholder="نام خانوادگی"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  required
-                  className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  className="pr-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -212,6 +198,7 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+
               {formData.password && (
                 <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
                   <h4 className="text-xs font-medium text-gray-700 mb-2">قوت رمز عبور:</h4>
@@ -226,45 +213,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                تایید رمز عبور
-              </Label>
-              <div className="relative">
-                <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="رمز عبور را مجدداً وارد کنید"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required
-                  className={`pr-10 pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${formData.confirmPassword && !doPasswordsMatch ? 'border-red-300' : ''
-                    }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {formData.confirmPassword && !doPasswordsMatch && (
-                <p className="text-xs text-red-500 flex items-center gap-1">
-                  <XCircle className="w-3 h-3" />
-                  رمز عبور مطابقت ندارد
-                </p>
-              )}
-              {formData.confirmPassword && doPasswordsMatch && (
-                <p className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" />
-                  رمز عبور مطابقت دارد
-                </p>
-              )}
-            </div>
-
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-sm text-red-600">{error}</p>
@@ -274,7 +222,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               size="xl"
-              disabled={!isPasswordStrong || !doPasswordsMatch || isLoading}
+              disabled={!isPasswordStrong || isLoading}
               className="w-full text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 hover:opacity-90"
               style={{
                 background: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))`,
@@ -293,8 +241,14 @@ export default function RegisterPage() {
 
           <div className="text-center pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-600">
-              قبلاً حساب کاربری دارید؟{' '}
-              <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors">
+              حساب کاربری دارید؟{' '}
+              <Link
+                href="/auth/login"
+                className="font-medium hover:underline transition-colors"
+                style={{
+                  color: 'oklch(0.6 0.2 240)'
+                }}
+              >
                 وارد شوید
               </Link>
             </p>
@@ -302,12 +256,5 @@ export default function RegisterPage() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
-
-const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-  <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-600' : 'text-gray-400'}`}>
-    {met ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-    <span>{text}</span>
-  </div>
-);
