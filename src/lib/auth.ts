@@ -1,10 +1,10 @@
 import NextAuth, { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { providers } from "./auth/provider";
+// import { providers } from "./auth/provider";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
-        ...providers,
+        // ...providers,
         CredentialsProvider({
             name: "Credentials",
             credentials: {
@@ -23,7 +23,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (!loginResponse.ok) throw new Error("احراز هویت ناموفق بود");
 
-                const loginData = await loginResponse.json();
+                const loginData = await loginResponse.json(); 
                 const token = loginData.access_token;
 
                 const userResponse = await fetch("http://localhost:8000/api/users/me", {
