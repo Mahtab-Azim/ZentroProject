@@ -1,7 +1,7 @@
 'use client';
 
 import { Home, ListTodo, MessageSquare, Settings, LogOut, X } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -14,8 +14,10 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
+  const router = useRouter();
+  
   const handleLogout = () => {
-    signOut({ callbackUrl: '/login' });
+    router.push('/auth/logout');
   };
 
   const menuItems = [
@@ -80,7 +82,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
+           onClick={() => router.push('/auth/logout')}
           >
             <LogOut className="w-4 h-4" />
             <span className="text-sm">خروج از حساب</span>

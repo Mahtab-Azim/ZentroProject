@@ -1,22 +1,47 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import UserNav from "@/components/ui/user-nav";
 
 const links = [
   { href: "/", label: "خانه" },
   { href: "/features", label: "ویژگی‌ها" },
   { href: "/dashboard", label: "داشبورد" },
-  { href: "/tasks", label: "وظایف" },
+  { href: "/tasks", label: "تسک ها" },
   { href: "/contact", label: "ارتباطات" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<{ name: string; email: string; } | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    const userName = localStorage.getItem('user_name');
+    const userEmail = localStorage.getItem('user_email');
+    
+    if (userName && userEmail) {
+      setUser({
+        name: userName,
+        email: userEmail
+      });
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('user_id');
+    setUser(null);
+    router.push('/auth/login');
+  };
 
   return (
     <header className="fixed top-0 w-full backdrop-blur-md bg-background/70 border-b border-border z-50">
@@ -55,21 +80,30 @@ export default function Navbar() {
         </ul>
       </div>
 
-      {/* Left side (login/register) */}
-      <div className="hidden md:flex items-center gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/auth/login" className="text-primary hover:text-primary/80">
-            ورود
-          </Link>
-        </Button>
-        <Button size="sm" asChild className="bg-primary hover:bg-primary/90">
-          <Link href="/auth/register">
-            ثبت‌نام
-          </Link>
-        </Button>
-      </div>
-
-      {/* Mobile menu button */}
+        {/* Left side (auth buttons or user menu) */}
+        <div className="flex items-center gap-4">
+          {user ? (
+            <UserNav user={user} onLogout={handleLogout} />
+          ) : (
+            <>
+              <Link href="/auth/login">
+                <Button
+                  variant="ghost"
+                  className="hover:text-primary hover:bg-primary/10"
+                >
+                  ورود
+                </Button>
+              </Link>
+              <Link href="/auth/register">
+                <Button
+                  className="bg-gradient-to-r from-primary to-accent text-white hover:from-primary/90 hover:to-accent/90 font-medium"
+                >
+                  ثبت نام
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>      {/* Mobile menu button */}
       <Button
         variant="ghost"
         size="icon"
