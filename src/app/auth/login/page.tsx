@@ -56,10 +56,25 @@ export default function LoginPage() {
             localStorage.setItem('access_token', data.access_token)
             localStorage.setItem('refresh_token', data.refresh_token)
             
+            // دریافت اطلاعات کاربر
+            const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
+                headers: {
+                    'Authorization': `Bearer ${data.access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            if (userInfoResponse.ok) {
+                const userInfo = await userInfoResponse.json()
+                localStorage.setItem('user_id', userInfo.id)
+                localStorage.setItem('user_name', userInfo.full_name)
+                localStorage.setItem('user_email', userInfo.email)
+            }
+
             console.log('✅ ورود موفق')
             
             // Redirect به dashboard
-            router.push('/dashboard')
+            router.replace('/dashboard')
             
         } catch (err) {
             console.error('خطا در ورود:', err)
@@ -129,7 +144,7 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                                 >
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
@@ -161,7 +176,7 @@ export default function LoginPage() {
                             type="submit"
                             size="xl"
                             disabled={!isValidEmail || !isPasswordValid || isLoading}
-                            className="w-full text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 hover:opacity-90"
+                            className="w-full text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 hover:opacity-90 cursor-pointer"
                             style={{
                                 background: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))`
                             }}
