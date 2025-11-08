@@ -9,8 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User, Settings } from 'lucide-react'
+import { LogOut, User, Settings, ChevronDown } from 'lucide-react'
 
 interface UserNavProps {
   user: {
@@ -33,52 +32,69 @@ export default function UserNav({ user, onLogout }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-3 rounded-full bg-gradient-to-r from-primary to-accent p-0.5 transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-          <div className="rounded-full bg-background p-1">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold text-sm">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+        <button className="group flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-background hover:bg-accent transition-all duration-200 border border-border hover:border-border/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 cursor-pointer">
+          {/* Initials Box */}
+          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white font-medium text-xs sm:text-sm shadow-sm group-hover:shadow-md transition-all duration-200">
+            {initials}
           </div>
+          
+          {/* Name (visible on desktop) */}
+          <span className="hidden sm:inline text-sm font-medium text-foreground/90">
+            {user.name}
+          </span>
+          
+          {/* Chevron */}
+          <ChevronDown size={14} className="text-muted-foreground hidden sm:inline transition-transform duration-200 group-hover:translate-y-0.5" />
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56 mt-2">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.name}</p>
-            <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+      <DropdownMenuContent align="end" className="w-64 mt-2 p-2" sideOffset={8}>
+        {/* Header with gradient background */}
+        <div className="relative mb-2 p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white font-semibold shadow-sm">
+              {initials}
+            </div>
+            <div className="flex flex-col">
+              <p className="text-sm font-medium leading-none">{user.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">{user.email}</p>
+            </div>
           </div>
-        </DropdownMenuLabel>
+        </div>
 
-        <DropdownMenuSeparator />
+        <div className="px-1 py-1">
+          <DropdownMenuItem
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-accent cursor-pointer group"
+          >
+            <div className="p-1 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200">
+              <User className="h-4 w-4" />
+            </div>
+            <span className="text-sm">داشبورد</span>
+          </DropdownMenuItem>
 
-        <DropdownMenuItem
-          onClick={() => router.push('/dashboard')}
-          className="cursor-pointer"
-        >
-          <User className="mr-2 h-4 w-4" />
-          <span>داشبورد</span>
-        </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => router.push('/settings')}
+            className="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-accent cursor-pointer group"
+          >
+            <div className="p-1 rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200">
+              <Settings className="h-4 w-4" />
+            </div>
+            <span className="text-sm">تنظیمات</span>
+          </DropdownMenuItem>
+        </div>
 
-        <DropdownMenuItem
-          onClick={() => router.push('/settings')}
-          className="cursor-pointer"
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          <span>تنظیمات</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          onClick={onLogout}
-          className="cursor-pointer text-destructive focus:text-destructive"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>خروج از حساب</span>
-        </DropdownMenuItem>
+        <div className="p-2 mt-1 border-t">
+          <DropdownMenuItem
+            onClick={onLogout}
+            className="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-destructive/10 text-destructive hover:text-destructive cursor-pointer group"
+          >
+            <div className="p-1 rounded-md bg-destructive/10 text-destructive group-hover:bg-destructive group-hover:text-white transition-colors duration-200">
+              <LogOut className="h-4 w-4" />
+            </div>
+            <span className="text-sm">خروج از حساب</span>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

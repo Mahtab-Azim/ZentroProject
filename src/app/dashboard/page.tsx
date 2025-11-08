@@ -143,26 +143,44 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-6">
-        <div className="rounded-2xl p-8 text-white relative overflow-hidden bg-gradient-to-br from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)]">
+      <div className="space-y-4 sm:space-y-6">
+        {/* Welcome Card */}
+        <div className="rounded-xl p-6 text-white relative overflow-hidden bg-gradient-to-br from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)]">
           <div className="relative z-10">
-            <h2 className="text-3xl font-bold mb-2">سلام {user.name}! </h2>
-            <p className="text-blue-100 mb-6">به داشبورد خود خوش آمدید</p>
-            <div className="flex items-center gap-4 flex-wrap">
-              <Button variant="secondary" size="lg">مشاهده وظایف</Button>
-              <Button variant="outline" size="lg" className="bg-white/20 hover:bg-white/30 text-white border-white/20">ایجاد تسک جدید</Button>
+            <div className="max-w-xl">
+              <h2 className="text-2xl font-bold mb-2">سلام {user.name}! </h2>
+              <p className="text-blue-100 mb-6">به داشبورد خود خوش آمدید</p>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="secondary" className="h-10">
+                  مشاهده وظایف
+                </Button>
+                <Button variant="outline" className="h-10 bg-white/20 hover:bg-white/30 text-white border-white/20">
+                  تسک جدید
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="absolute left-0 top-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute right-0 bottom-0 w-48 h-48 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3"></div>
+          <div className="absolute left-0 top-0 w-48 h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
         </div>
 
-        <StatsGrid stats={stats} />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <SprintProgress sprint={sprint} />
-          <div className="lg:col-span-2"><WeeklyChart data={weeklyData} /></div>
+        {/* Stats Grid */}
+        <div className="mb-6">
+          <StatsGrid stats={stats} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2">
+            <WeeklyChart data={weeklyData} />
+          </div>
+          <div className="w-full">
+            <SprintProgress sprint={sprint} />
+          </div>
+        </div>
+
+        {/* Tasks and Activity Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <TaskList tasks={tasks} />
           <ActivityFeed activities={activities} />
         </div>
