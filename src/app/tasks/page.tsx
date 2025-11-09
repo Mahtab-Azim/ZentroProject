@@ -1,99 +1,203 @@
-"use client"
+'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Clock, CheckCircle, AlertCircle, Plus, Filter } from 'lucide-react'
+import {
+  DndContext,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Plus, Trash2, Send, X, Menu, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Task {
-  id: number;
-  title: string;
-  description?: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'blocked';
-  priority: 'low' | 'medium' | 'high';
-  due_date?: string;
-  projectId: number;
-  projectName: string;
+  id: number
+  title: string
+  description?: string
+  status: 'todo' | 'in_progress' | 'review' | 'done'
+  priority: 'low' | 'medium' | 'high'
+  due_date?: string
+  projectId: number
+  projectName: string
 }
 
 interface Project {
-  id: number;
-  name: string;
+  id: number
+  name: string
 }
 
 interface NewTask {
-  title: string;
-  description?: string;
-  status: Task['status'];
-  priority: Task['priority'];
-  due_date?: string;
-  project_id: number;
+  title: string
+  description?: string
+  status: Task['status']
+  priority: Task['priority']
+  due_date?: string
+  project_id: number
+}
+
+const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: number) => void }) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  const priorityColor = {
+    high: 'border-l-red-500',
+    medium: 'border-l-yellow-500',
+    low: 'border-l-green-500',
+  }
+
+  const priorityLabel = { high: 'زیاد', medium: 'متوسط', low: 'کم' }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`bg-white rounded-xl p-5 border-l-4 shadow-sm hover:shadow-lg transition-all cursor-grab active:cursor-grabbing ${priorityColor[task.priority]}`}
+    >
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex-1">
+          <h4 className="font-bold text-gray-900">{task.title}</h4>
+          <div className="flex flex-wrap gap-2 mt-2 text-xs">
+            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+              {task.projectName}
+            </span>
+            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+              اولویت: {priorityLabel[task.priority]}
+            </span>
+          </div>
+          {task.description && (
+            <p className="text-sm text-gray-600 mt-3 line-clamp-2">{task.description}</p>
+          )}
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
+          className="text-gray-400 hover:text-red-600 p-1"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+const KanbanColumn = ({
+  title,
+  status,
+  tasks,
+  onDelete,
+}: {
+  title: string
+  status: Task['status']
+  tasks: Task[]
+  onDelete: (id: number) => void
+}) => {
+  const { setNodeRef } = useSortable({ id: status })
+
+  return (
+    <div ref={setNodeRef} className="flex-1 min-w-80 bg-gray-50 rounded-2xl p-5 flex flex-col border border-gray-200">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+        <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold">
+          {tasks.length}
+        </span>
+      </div>
+      <div className="flex-1 overflow-y-auto space-y-4">
+        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          {tasks.length === 0 ? (
+            <p className="text-center text-gray-400 py-12 text-sm">هنوز تسکی اضافه نشده</p>
+          ) : (
+            tasks.map(task => <SortableTaskItem key={task.id} task={task} onDelete={onDelete} />)
+          )}
+        </SortableContext>
+      </div>
+    </div>
+  )
 }
 
 export default function MyTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<'all' | Task['status']>('all')
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [chatMessages, setChatMessages] = useState<{ type: 'user' | 'agent'; text: string }[]>([])
+  const [chatInput, setChatInput] = useState('')
+
   const [newTask, setNewTask] = useState<NewTask>({
     title: '',
     description: '',
-    status: 'pending',
+    status: 'todo',
     priority: 'medium',
     due_date: '',
-    project_id: 0
+    project_id: 0,
   })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     if (!token) {
-      setIsAuthenticated(false)
       window.location.href = '/auth/login'
       return
     }
-    
     fetchTasks(token)
   }, [])
 
-  const fetchTasks = async (token: string) => {
+  const fetchTasks = async (token: string) => { 
     try {
       setIsLoading(true)
       setError(null)
-      
-      // Get all projects first
+
       const projectsRes = await fetch('http://127.0.0.1:8000/api/projects/projects', {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       })
 
-      if (!projectsRes.ok) {
-        throw new Error('خطا در دریافت پروژه‌ها')
-      }
+      if (!projectsRes.ok) throw new Error('خطا در دریافت پروژه‌ها')
 
-      const projectsList = await projectsRes.json() as Project[]
+      const projectsList = (await projectsRes.json()) as Project[]
       setProjects(projectsList)
+
       let allTasks: Task[] = []
 
-      // Fetch tasks from each project
-      for (const project of projects) {
+      for (const project of projectsList) {
         try {
-          const tasksRes = await fetch(`http://127.0.0.1:8000/api/projects/projects/${project.id}/tasks`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
+          const tasksRes = await fetch(
+            `http://127.0.0.1:8000/api/projects/projects/${project.id}/tasks`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
             }
-          })
+          )
 
           if (tasksRes.ok) {
-            const projectTasks = await tasksRes.json() as Omit<Task, 'projectId' | 'projectName'>[]
-            allTasks = [...allTasks, ...projectTasks.map(t => ({ 
-              ...t, 
-              projectId: project.id, 
-              projectName: project.name 
-            }))]
+            const projectTasks = await tasksRes.json()
+            allTasks = [
+              ...allTasks,
+              ...projectTasks.map((t: any) => ({
+                ...t,
+                projectId: project.id,
+                projectName: project.name,
+              })),
+            ]
           }
         } catch (err) {
           console.error(`خطا در دریافت تسک‌های پروژه ${project.id}:`, err)
@@ -103,299 +207,329 @@ export default function MyTasksPage() {
       setTasks(allTasks)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطایی رخ داد')
-      console.error('خطا:', err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const getStatusColor = (status: Task['status']) => {
-    switch(status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700'
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-700'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700'
-      case 'blocked':
-        return 'bg-red-100 text-red-700'
-      default:
-        return 'bg-gray-100 text-gray-700'
-    }
-  }
-
-  const getPriorityColor = (priority: Task['priority']) => {
-    switch(priority) {
-      case 'high':
-        return 'border-l-4 border-l-red-500'
-      case 'medium':
-        return 'border-l-4 border-l-yellow-500'
-      case 'low':
-        return 'border-l-4 border-l-green-500'
-      default:
-        return 'border-l-4 border-l-gray-300'
-    }
-  }
-
   const handleAddTask = async () => {
     const token = localStorage.getItem('access_token')
-    if (!token || !newTask.project_id) return
+    if (!token || !newTask.project_id || !newTask.title) return
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks`, {
+      const response = await fetch('http://127.0.0.1:8000/api/projects/tasks', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newTask)
+        body: JSON.stringify(newTask),
       })
 
-      if (!response.ok) {
-        throw new Error('خطا در ایجاد تسک جدید')
-      }
+      if (!response.ok) throw new Error('خطا در ایجاد تسک')
 
-      // بروزرسانی لیست تسک‌ها
       await fetchTasks(token)
-      
-      // بستن مودال و ریست کردن فرم
       setIsAddModalOpen(false)
       setNewTask({
         title: '',
         description: '',
-        status: 'pending',
+        status: 'todo',
         priority: 'medium',
         due_date: '',
-        project_id: 0
+        project_id: 0,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطا در ایجاد تسک')
+      setError('خطا در ایجاد تسک جدید')
     }
   }
 
-  const filteredTasks = filterStatus === 'all' 
-    ? tasks 
-    : tasks.filter(t => t.status === filterStatus)
+  const handleDeleteTask = async (taskId: number) => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
 
-  const stats = {
-    total: tasks.length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-    inProgress: tasks.filter(t => t.status === 'in_progress').length,
-    pending: tasks.filter(t => t.status === 'pending').length,
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${taskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) throw new Error('خطا در حذف تسک')
+
+      setTasks(prev => prev.filter(t => t.id !== taskId))
+    } catch (err) {
+      setError('خطا در حذف تسک')
+    }
   }
 
-  if (!isAuthenticated) {
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event
+    if (!over) return
+
+    const activeTask = tasks.find(t => t.id === active.id)
+    if (!activeTask) return
+
+    const newStatus = over.id as Task['status']
+    if (activeTask.status === newStatus) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (response.ok) {
+        setTasks(prev => prev.map(t => t.id === activeTask.id ? { ...t, status: newStatus } : t))
+      }
+    } catch (err) {
+      console.error('خطا در تغییر وضعیت تسک')
+    }
+  }
+
+  const handleSendMessage = () => {
+    if (!chatInput.trim()) return
+    setChatMessages(prev => [...prev, { type: 'user', text: chatInput }])
+    setChatInput('')
+
+    setTimeout(() => {
+      setChatMessages(prev => [...prev, { type: 'agent', text: 'سلام! API من هنوز آماده نیست، ولی به زودی کمکت می‌کنم!' }])
+    }, 800)
+  }
+
+  const todoTasks = tasks.filter(t => t.status === 'todo')
+  const inProgressTasks = tasks.filter(t => t.status === 'in_progress')
+  const reviewTasks = tasks.filter(t => t.status === 'review')
+  const doneTasks = tasks.filter(t => t.status === 'done')
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>درحال انتقال به صفحه ورود...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">وظایف من</h1>
-            <p className="text-gray-600">مدیریت و پیگیری تسک‌های خود</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* کانبان بورد */}
+      <div className={`transition-all duration-500 ease-in-out ${isFullscreen ? 'mr-0' : isChatOpen ? 'mr-96' : 'mr-16'}`}>
+        <div className="px-6 pt-24 pb-8">
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">تسک های من</h1>
+              <p className="text-gray-600 mt-2">همه تسک‌هات رو اینجا مدیریت کن</p>
+            </div>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-600 text-white px-6 py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer"
+            >
+              <Plus size={24} />
+              تسک جدید
+            </button>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            تسک جدید
-          </button>
-        </div>
 
-        {/* Add Task Modal */}
-        {isAddModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">افزودن تسک جدید</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">عنوان</label>
-                  <input
-                    type="text"
-                    value={newTask.title}
-                    onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="عنوان تسک را وارد کنید"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">توضیحات</label>
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                    placeholder="توضیحات تسک را وارد کنید"
-                  />
-                </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-8 text-red-700 flex gap-3">
+              <AlertCircle size={24} />
+              <span>{error}</span>
+            </div>
+          )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">پروژه</label>
-                  <select
-                    value={newTask.project_id}
-                    onChange={(e) => setNewTask({...newTask, project_id: Number(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={0}>انتخاب پروژه</option>
-                    {projects.map(project => (
-                      <option key={project.id} value={project.id}>{project.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">وضعیت</label>
-                  <select
-                    value={newTask.status}
-                    onChange={(e) => setNewTask({...newTask, status: e.target.value as Task['status']})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="pending">در انتظار</option>
-                    <option value="in_progress">در حال انجام</option>
-                    <option value="completed">تکمیل شده</option>
-                    <option value="blocked">مسدود شده</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">اولویت</label>
-                  <select
-                    value={newTask.priority}
-                    onChange={(e) => setNewTask({...newTask, priority: e.target.value as Task['priority']})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="low">کم</option>
-                    <option value="medium">متوسط</option>
-                    <option value="high">زیاد</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">تاریخ سررسید</label>
-                  <input
-                    type="date"
-                    value={newTask.due_date}
-                    onChange={(e) => setNewTask({...newTask, due_date: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6">
-                  <button
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    انصراف
-                  </button>
-                  <button
-                    onClick={handleAddTask}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    disabled={!newTask.title || !newTask.project_id}
-                  >
-                    ایجاد تسک
+          {/* مودال اضافه کردن تسک */}
+          {isAddModalOpen && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">افزودن تسک جدید</h2>
+                  <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                    <X size={28} />
                   </button>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="text-sm text-gray-600 mb-2">کل تسک‌ها</div>
-            <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <CheckCircle size={16} className="text-green-600" />
-              تکمیل شده
-            </div>
-            <div className="text-3xl font-bold text-green-600">{stats.completed}</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <Clock size={16} className="text-blue-600" />
-              در حال انجام
-            </div>
-            <div className="text-3xl font-bold text-blue-600">{stats.inProgress}</div>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <AlertCircle size={16} className="text-yellow-600" />
-              منتظر
-            </div>
-            <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
-          </div>
-        </div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">عنوان تسک</label>
+                    <input
+                      type="text"
+                      value={newTask.title}
+                      onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="مثلاً: طراحی صفحه لاگین"
+                    />
+                  </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 mb-6">
-          <Filter size={20} className="text-gray-600" />
-          <div className="flex gap-2 flex-wrap">
-            {(['all', 'pending', 'in_progress', 'completed'] as const).map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  filterStatus === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {status === 'all' ? 'همه' : status === 'pending' ? 'منتظر' : status === 'in_progress' ? 'در حال انجام' : 'تکمیل شده'}
-              </button>
-            ))}
-          </div>
-        </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">توضیحات</label>
+                    <textarea
+                      value={newTask.description}
+                      onChange={e => setNewTask({ ...newTask, description: e.target.value })}
+                      rows={4}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="جزئیات تسک رو بنویس..."
+                    />
+                  </div>
 
-        {/* Tasks List */}
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">
-            {error}
-          </div>
-        ) : filteredTasks.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center shadow-sm">
-            <AlertCircle size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 text-lg">تسکی برای نمایش وجود ندارد</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredTasks.map(task => (
-              <div 
-                key={task.id} 
-                className={`bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer shadow-sm ${getPriorityColor(task.priority)}`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{task.title}</h3>
-                    <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                      <span className="bg-gray-100 px-3 py-1 rounded">📌 {task.projectName}</span>
-                      <span className={`px-3 py-1 rounded font-medium ${getStatusColor(task.status)}`}>
-                        {task.status === 'completed' ? 'تکمیل شده' : task.status === 'in_progress' ? 'در حال انجام' : task.status === 'pending' ? 'منتظر' : 'مسدود'}
-                      </span>
-                      {task.due_date && <span>📅 {task.due_date}</span>}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">پروژه</label>
+                    <select
+                      value={newTask.project_id}
+                      onChange={e => setNewTask({ ...newTask, project_id: Number(e.target.value) })}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={0}>انتخاب پروژه</option>
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">وضعیت</label>
+                      <select
+                        value={newTask.status}
+                        onChange={e => setNewTask({ ...newTask, status: e.target.value as Task['status'] })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="todo">آماده انجام</option>
+                        <option value="in_progress">در حال انجام</option>
+                        <option value="review">بررسی/تست</option>
+                        <option value="done">انجام‌شده</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">اولویت</label>
+                      <select
+                        value={newTask.priority}
+                        onChange={e => setNewTask({ ...newTask, priority: e.target.value as Task['priority'] })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="low">کم</option>
+                        <option value="medium">متوسط</option>
+                        <option value="high">زیاد</option>
+                      </select>
                     </div>
                   </div>
-                  {task.description && (
-                    <p className="text-sm text-gray-600 text-right max-w-xs">{task.description}</p>
-                  )}
+
+                  <div className="flex justify-end gap-3 mt-8">
+                    <button
+                      onClick={() => setIsAddModalOpen(false)}
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 font-semibold"
+                    >
+                      انصراف
+                    </button>
+                    <button
+                      onClick={handleAddTask}
+                      disabled={!newTask.title || !newTask.project_id}
+                      className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-lg cursor-pointer"
+                    >
+                      ایجاد تسک
+                    </button>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+          )}
+
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+            <div className="flex gap-6 overflow-x-auto pb-8">
+              <KanbanColumn title="آماده انجام" status="todo" tasks={todoTasks} onDelete={handleDeleteTask} />
+              <KanbanColumn title="در حال انجام" status="in_progress" tasks={inProgressTasks} onDelete={handleDeleteTask} />
+              <KanbanColumn title="بررسی/تست" status="review" tasks={reviewTasks} onDelete={handleDeleteTask} />
+              <KanbanColumn title="انجام‌شده" status="done" tasks={doneTasks} onDelete={handleDeleteTask} />
+            </div>
+          </DndContext>
+        </div>
+      </div>
+
+      {/* پنل چت AI */}
+      <div className={`
+        fixed right-0 top-0 h-full shadow-2xl transition-all duration-500 ease-in-out z-50
+        ${isFullscreen ? 'w-full' : isChatOpen ? 'w-96' : 'w-16'}
+        bg-white
+      `}>
+        {/* هدر */}
+        <div className="h-20 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center px-6">
+          {isChatOpen ? (
+            <div className="w-full flex items-center justify-between">
+              <button 
+                onClick={() => setIsChatOpen(false)} 
+                className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
+              >
+                <Menu size={24} />
+              </button>
+              <div className="text-white text-center">
+                <h3 className="font-bold">AI Agent</h3>
+                <p className="text-blue-100 text-xs">همیشه دسترس</p>
+              </div>
+              <button 
+                onClick={() => setIsFullscreen(!isFullscreen)} 
+                className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
+              >
+                {isFullscreen ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => setIsChatOpen(true)} 
+              className="text-white p-2"
+            >
+              <Menu size={24} />
+            </button>
+          )}
+        </div>
+
+        {/* محتوا */}
+        {isChatOpen && (
+          <div className="flex flex-col h-[calc(100vh-80px)]">
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {chatMessages.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl">
+                    <span className="text-white text-3xl font-bold">AI</span>
+                  </div>
+                  <p className="text-gray-700 text-lg font-semibold">سلام! چطور کمک کنم؟</p>
+                  <p className="text-gray-500 text-sm mt-2">مثلاً: "تسک‌های امروزم چیه؟"</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs p-4 rounded-2xl font-medium shadow-md ${msg.type === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
+                      {msg.text}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-5 border-t border-gray-200">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="پیام به AI..."
+                  className="flex-1 px-5 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button 
+                  onClick={handleSendMessage} 
+                  className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg transition-all"
+                >
+                  <Send size={20} />
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
