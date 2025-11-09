@@ -9,7 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 
+import { useAuth } from "@/contexts/AuthContext"
+
 export default function LoginPage() {
+    const { login } = useAuth()
     const [formData, setFormData] = useState({
         email: "",
         password: ""
@@ -52,11 +55,17 @@ export default function LoginPage() {
 
             const data = await response.json()
             
-            // ذخیره توکن‌ها در localStorage
-            localStorage.setItem('access_token', data.access_token)
+            // استفاده از login از AuthContext
+            login(data.access_token)
             localStorage.setItem('refresh_token', data.refresh_token)
             
-            // دریافت اطلاعات کاربر
+            // اطمینان از به‌روزرسانی همه کامپوننت‌ها
+            window.dispatchEvent(new Event('userLogin'))
+            
+            // کمی صبر می‌کنیم تا state ها به‌روز شوند
+            await new Promise(resolve => setTimeout(resolve, 100))
+            
+            // دریافت اطلاعات کاربر در AuthContext انجام می‌شود
             const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
                 headers: {
                     'Authorization': `Bearer ${data.access_token}`,
