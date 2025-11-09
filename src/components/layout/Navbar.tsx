@@ -32,7 +32,7 @@ export default function Navbar() {
   const router = useRouter()
 
   // چک کردن اولیه و آپدیت کاربر
-   // چک کردن کاربر — بدون رفرش، ۱۰۰٪ کار می‌کنه!
+  // چک کردن کاربر — بدون رفرش، ۱۰۰٪ کار می‌کنه!
   useEffect(() => {
     setIsMounted(true)
 
@@ -82,14 +82,14 @@ export default function Navbar() {
     return null
   }
 
-  const navLinks = user 
-    ? [...publicLinks, ...authLinks] 
+  const navLinks = user
+    ? [...publicLinks, ...authLinks]
     : publicLinks
 
   return (
     <header className="fixed top-0 w-full backdrop-blur-md bg-background/70 border-b border-border z-50">
       <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 py-4">
-        
+
         {/* Left side - Logo */}
         <Link
           href="/"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -40,10 +41,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl">
-      <body>
+      <body className="bg-gray-50 text-gray-900 antialiased">
         <AuthProvider>
           <Navbar />
-          <main className="pt-16">{children}</main>
+          <PageTransition>
+            {children}  {/* اینجا دیگه main لازم نیست! */}
+          </PageTransition>
         </AuthProvider>
       </body>
     </html>
