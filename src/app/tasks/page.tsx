@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, Trash2, Send, X, Menu, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2 } from 'lucide-react'
 
 interface Task {
   id: number
@@ -44,8 +44,15 @@ interface NewTask {
 }
 
 const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: number) => void }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
-  const style = { transform: CSS.Transform.toString(transform), transition }
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
+    id: task.id 
+  })
+  
+  const style = { 
+    transform: CSS.Transform.toString(transform), 
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
 
   const priorityColor = {
     high: 'border-l-red-500',
@@ -80,7 +87,7 @@ const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: numbe
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
-          className="text-gray-400 hover:text-red-600 p-1"
+          className="text-gray-400 hover:text-red-600 p-1 flex-shrink-0"
         >
           <Trash2 size={18} />
         </button>
@@ -100,22 +107,36 @@ const KanbanColumn = ({
   tasks: Task[]
   onDelete: (id: number) => void
 }) => {
-  const { setNodeRef } = useSortable({ id: status })
+  const { setNodeRef, isOver } = useSortable({ id: status })
 
   return (
-    <div ref={setNodeRef} className="flex-1 min-w-80 bg-gray-50 rounded-2xl p-5 flex flex-col border border-gray-200">
+    <div 
+      ref={setNodeRef} 
+      className={`flex-1 min-w-80 bg-gray-50 rounded-2xl p-5 flex flex-col border-2 transition-all ${
+        isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+      }`}
+    >
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
         <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold">
           {tasks.length}
         </span>
       </div>
-      <div className="flex-1 overflow-y-auto space-y-4">
-        <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+      <div className="flex-1 overflow-y-auto space-y-4 min-h-96">
+        <SortableContext 
+          items={tasks.map(t => t.id)} 
+          strategy={verticalListSortingStrategy}
+        >
           {tasks.length === 0 ? (
             <p className="text-center text-gray-400 py-12 text-sm">هنوز تسکی اضافه نشده</p>
           ) : (
-            tasks.map(task => <SortableTaskItem key={task.id} task={task} onDelete={onDelete} />)
+            tasks.map(task => (
+              <SortableTaskItem 
+                key={task.id} 
+                task={task} 
+                onDelete={onDelete} 
+              />
+            ))
           )}
         </SortableContext>
       </div>
@@ -129,7 +150,6 @@ export default function MyTasksPage() {
   const [error, setError] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isChatOpen, setIsChatOpen] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [chatMessages, setChatMessages] = useState<{ type: 'user' | 'agent'; text: string }[]>([])
   const [chatInput, setChatInput] = useState('')
@@ -145,7 +165,9 @@ export default function MyTasksPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, { 
+      coordinateGetter: sortableKeyboardCoordinates 
+    })
   )
 
   useEffect(() => {
@@ -278,20 +300,32 @@ export default function MyTasksPage() {
     if (!token) return
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      })
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`, 
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      )
 
       if (response.ok) {
-        setTasks(prev => prev.map(t => t.id === activeTask.id ? { ...t, status: newStatus } : t))
+        setTasks(prev => 
+          prev.map(t => 
+            t.id === activeTask.id 
+              ? { ...t, status: newStatus } 
+              : t
+          )
+        )
+      } else {
+        setError('خطا در تغییر وضعیت تسک')
       }
     } catch (err) {
-      console.error('خطا در تغییر وضعیت تسک')
+      setError('خطا در تغییر وضعیت تسک')
+      console.error('خطا:', err)
     }
   }
 
@@ -299,9 +333,8 @@ export default function MyTasksPage() {
     if (!chatInput.trim()) return
     setChatMessages(prev => [...prev, { type: 'user', text: chatInput }])
     setChatInput('')
-
     setTimeout(() => {
-      setChatMessages(prev => [...prev, { type: 'agent', text: 'سلام! API من هنوز آماده نیست، ولی به زودی کمکت می‌کنم!' }])
+      setChatMessages(prev => [...prev, { type: 'agent', text: 'سلام! API من هنوز آماده نیست!' }])
     }, 800)
   }
 
@@ -319,18 +352,18 @@ export default function MyTasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* کانبان بورد */}
-      <div className={`transition-all duration-500 ease-in-out ${isFullscreen ? 'mr-0' : isChatOpen ? 'mr-96' : 'mr-16'}`}>
-        <div className="px-6 pt-24 pb-8">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Kanban Section */}
+    {!isFullscreen && (
+  <div className={`flex-1 px-6 pt-24 pb-8 overflow-auto ${!isFullscreen ? 'lg:pr-[28rem]' : ''}`}>
           <div className="mb-8 flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold text-gray-900">تسک های من</h1>
-              <p className="text-gray-600 mt-2">همه تسک‌هات رو اینجا مدیریت کن</p>
+              <p className="text-gray-600 mt-2">مدیریت تسک‌های خود با Drag & Drop</p>
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="bg-blue-600 text-white px-6 py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer"
+              className="bg-blue-600 text-white px-6 py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer font-semibold"
             >
               <Plus size={24} />
               تسک جدید
@@ -347,10 +380,13 @@ export default function MyTasksPage() {
           {/* مودال اضافه کردن تسک */}
           {isAddModalOpen && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl">
+              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold">افزودن تسک جدید</h2>
-                  <button onClick={() => setIsAddModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                  <button 
+                    onClick={() => setIsAddModalOpen(false)} 
+                    className="text-gray-500 hover:text-gray-700"
+                  >
                     <X size={28} />
                   </button>
                 </div>
@@ -424,14 +460,14 @@ export default function MyTasksPage() {
                   <div className="flex justify-end gap-3 mt-8">
                     <button
                       onClick={() => setIsAddModalOpen(false)}
-                      className="px-6 py-3 text-gray-600 hover:text-gray-800 font-semibold"
+                      className="px-6 py-3 text-gray-600 hover:text-gray-800 font-semibold rounded-lg hover:bg-gray-100"
                     >
                       انصراف
                     </button>
                     <button
                       onClick={handleAddTask}
                       disabled={!newTask.title || !newTask.project_id}
-                      className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-lg cursor-pointer"
+                      className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-lg cursor-pointer transition-all"
                     >
                       ایجاد تسک
                     </button>
@@ -441,98 +477,99 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+          <DndContext 
+            sensors={sensors} 
+            collisionDetection={closestCorners} 
+            onDragEnd={handleDragEnd}
+          >
             <div className="flex gap-6 overflow-x-auto pb-8">
-              <KanbanColumn title="آماده انجام" status="todo" tasks={todoTasks} onDelete={handleDeleteTask} />
-              <KanbanColumn title="در حال انجام" status="in_progress" tasks={inProgressTasks} onDelete={handleDeleteTask} />
-              <KanbanColumn title="بررسی/تست" status="review" tasks={reviewTasks} onDelete={handleDeleteTask} />
-              <KanbanColumn title="انجام‌شده" status="done" tasks={doneTasks} onDelete={handleDeleteTask} />
+              <KanbanColumn 
+                title="آماده انجام" 
+                status="todo" 
+                tasks={todoTasks} 
+                onDelete={handleDeleteTask} 
+              />
+              <KanbanColumn 
+                title="در حال انجام" 
+                status="in_progress" 
+                tasks={inProgressTasks} 
+                onDelete={handleDeleteTask} 
+              />
+              <KanbanColumn 
+                title="بررسی/تست" 
+                status="review" 
+                tasks={reviewTasks} 
+                onDelete={handleDeleteTask} 
+              />
+              <KanbanColumn 
+                title="انجام‌شده" 
+                status="done" 
+                tasks={doneTasks} 
+                onDelete={handleDeleteTask} 
+              />
             </div>
           </DndContext>
         </div>
-      </div>
+      )}
 
-      {/* پنل چت AI */}
-      <div className={`
-        fixed right-0 top-0 h-full shadow-2xl transition-all duration-500 ease-in-out z-50
-        ${isFullscreen ? 'w-full' : isChatOpen ? 'w-96' : 'w-16'}
-        bg-white
-      `}>
-        {/* هدر */}
-        <div className="h-20 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 flex items-center justify-center px-6">
-          {isChatOpen ? (
-            <div className="w-full flex items-center justify-between">
-              <button 
-                onClick={() => setIsChatOpen(false)} 
-                className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
-              >
-                <Menu size={24} />
-              </button>
-              <div className="text-white text-center">
-                <h3 className="font-bold">AI Agent</h3>
-                <p className="text-blue-100 text-xs">همیشه دسترس</p>
-              </div>
-              <button 
-                onClick={() => setIsFullscreen(!isFullscreen)} 
-                className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
-              >
-                {isFullscreen ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
-              </button>
+      {/* Chat Sidebar */}
+      <div className={`fixed ${isFullscreen ? 'inset-0 z-50' : 'right-0 top-24 bottom-0 w-96 z-50'} bg-white ${isFullscreen ? '' : 'border-l-2 border-blue-200'} shadow-2xl flex flex-col transition-all duration-300 rounded-l-3xl overflow-hidden`}>
+        {/* Header (softer top corners and subtle shadow) */}
+        <div className={`bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between ${isFullscreen ? 'rounded-none' : 'rounded-t-3xl'} shadow-md backdrop-blur-sm`}>
+          <h3 className="font-bold text-lg">AI Chat Interface</h3>
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
+          >
+            {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {chatMessages.length === 0 ? (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-center text-gray-500 text-sm">پیام جدید نوشته نشده</p>
             </div>
           ) : (
-            <button 
-              onClick={() => setIsChatOpen(true)} 
-              className="text-white p-2"
-            >
-              <Menu size={24} />
-            </button>
+            chatMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs p-3 rounded-2xl text-sm ${
+                  msg.type === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900'
+                }`}>
+                  {msg.text}
+                </div>
+              </div>
+            ))
           )}
         </div>
 
-        {/* محتوا */}
-        {isChatOpen && (
-          <div className="flex flex-col h-[calc(100vh-80px)]">
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {chatMessages.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center shadow-xl">
-                    <span className="text-white text-3xl font-bold">AI</span>
-                  </div>
-                  <p className="text-gray-700 text-lg font-semibold">سلام! چطور کمک کنم؟</p>
-                  <p className="text-gray-500 text-sm mt-2">مثلاً: "تسک‌های امروزم چیه؟"</p>
-                </div>
-              ) : (
-                chatMessages.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs p-4 rounded-2xl font-medium shadow-md ${msg.type === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        {/* persistent chat (no draggable handle) */}
 
-            <div className="p-5 border-t border-gray-200">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="پیام به AI..."
-                  className="flex-1 px-5 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <button 
-                  onClick={handleSendMessage} 
-                  className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg transition-all"
-                >
-                  <Send size={20} />
-                </button>
-              </div>
-            </div>
+        {/* Input */}
+        <div className="p-4 border-t-2 border-gray-200 bg-gray-50">
+          <div className="flex gap-2 items-center flex-row-reverse">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+              placeholder="پیام خود را بنویسید..."
+              className="flex-1 px-4 py-2 border-2 border-blue-400 rounded-2xl focus:outline-none focus:ring-0 text-sm text-right"
+            />
+            <button
+              onClick={handleSendMessage}
+              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all"
+            >
+              <Send size={18} />
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* chat is persistent; no reopen button */}
     </div>
   )
 }
