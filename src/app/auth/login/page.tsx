@@ -54,17 +54,17 @@ export default function LoginPage() {
             }
 
             const data = await response.json()
-            
+
             // استفاده از login از AuthContext
             login(data.access_token)
             localStorage.setItem('refresh_token', data.refresh_token)
-            
+
             // اطمینان از به‌روزرسانی همه کامپوننت‌ها
             window.dispatchEvent(new Event('userLogin'))
-            
+
             // کمی صبر می‌کنیم تا state ها به‌روز شوند
             await new Promise(resolve => setTimeout(resolve, 100))
-            
+
             // دریافت اطلاعات کاربر در AuthContext انجام می‌شود
             const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
                 headers: {
@@ -81,10 +81,10 @@ export default function LoginPage() {
             }
 
             console.log('✅ ورود موفق')
-            
+
             // Redirect به dashboard
             router.replace('/dashboard')
-            
+
         } catch (err) {
             console.error('خطا در ورود:', err)
             setError(err instanceof Error ? err.message : 'خطایی رخ داد')

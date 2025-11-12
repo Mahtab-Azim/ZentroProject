@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import StatsGrid from '@/components/dashboard/StatsGrid'
 import TaskList from '@/components/dashboard/TaskList'
@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [sprint, setSprint] = useState<Sprint | null>(null)
   const [weeklyData, setWeeklyData] = useState<WeeklyData[] | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
@@ -151,11 +152,12 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold mb-2">سلام {user.name}! </h2>
               <p className="text-blue-100 mb-6">به داشبورد خود خوش آمدید</p>
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" className="h-10">
-                  مشاهده وظایف
-                </Button>
-                <Button variant="outline" className="h-10 bg-white/20 hover:bg-white/30 text-white border-white/20">
-                  تسک جدید
+                <Button
+                  variant="outline"
+                  className="h-10 bg-white/20 hover:bg-white/30 text-white border-white/20 cursor-pointer"
+                  onClick={() => router.push('/tasks')}
+                >
+                  مشاهده تسک‌ها
                 </Button>
               </div>
             </div>
