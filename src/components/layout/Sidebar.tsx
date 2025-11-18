@@ -20,22 +20,22 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
 
   const menuItems = [
     { icon: Home, label: 'داشبورد', href: '/dashboard' },
-    { icon: ListTodo, label: 'وظایف', href: '/tasks' },
+    { icon: ListTodo, label: 'تسک ها', href: '/tasks' },
     { icon: MessageSquare, label: 'ارتباطات', href: '/messages' },
     { icon: Settings, label: 'تنظیمات', href: '/settings' },
   ];
 
   return (
-    <aside className="h-screen bg-white border-l border-border shadow-lg flex flex-col">
+    <aside className="h-screen bg-white border-l border-border shadow-lg flex flex-col sticky top-0 overflow-y-auto overflow-x-hidden">
       {/* Mobile Close Button */}
-      <div className="lg:hidden p-4 border-b">
+      <div className="lg:hidden p-4 border-b shrink-0">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
       </div>
 
       {/* Header */}
-      <div className="p-5 border-b">
+      <div className="px-5 pt-6 pb-4 border-b shrink-0">
         <div className="flex items-center justify-between">
           <h1 className={`font-bold text-xl text-primary transition-all ${isOpen ? 'block' : 'hidden'}`}>
             TaskFlow
@@ -44,7 +44,7 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 px-4 pt-6 pb-4 space-y-2 min-h-0 overflow-y-auto">
         {menuItems.map((item) => {
           const active = pathname === item.href;
           return (
@@ -54,7 +54,7 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
               className="w-full justify-start gap-3 h-12"
               onClick={() => router.push(item.href)}
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <item.icon className="w-5 h-5 shrink-0" />
               {isOpen && <span>{item.label}</span>}
             </Button>
           );
@@ -62,7 +62,7 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
       </nav>
 
       {/* User & Logout */}
-      <div className="p-4 border-t">
+      <div className="p-4 border-t shrink-0">
         <div className={`flex items-center gap-3 mb-3 ${isOpen ? 'block' : 'justify-center'}`}>
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-white">
@@ -79,10 +79,10 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
 
         <Button
           variant="ghost"
-          className="w-full justify-start gap-3 text-destructive h-12"
+          className="w-full justify-start gap-3 text-destructive h-12 cursor-pointer"
           onClick={() => router.push('/auth/logout')}
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <LogOut className="w-5 h-5 shrink-0" />
           {isOpen && <span>خروج از حساب</span>}
         </Button>
       </div>

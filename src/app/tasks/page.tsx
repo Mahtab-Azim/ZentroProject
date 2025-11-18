@@ -201,7 +201,7 @@ export default function MyTasksPage() {
       for (const project of projectsList) {
         try {
           const tasksRes = await fetch(
-            `http://127.0.0.1:8000/api/projects/projects/${project.id}/tasks`,
+            `http://127.0.0.1:8000/api/projects/${project.id}/tasks`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -359,7 +359,7 @@ export default function MyTasksPage() {
           <div className="mb-8 flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold text-gray-900">تسک های من</h1>
-              <p className="text-gray-600 mt-2">مدیریت تسک‌های خود با Drag & Drop</p>
+              <p className="text-gray-600 mt-2">مدیریت تسک‌های خود</p>
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
@@ -434,7 +434,7 @@ export default function MyTasksPage() {
                       <select
                         value={newTask.status}
                         onChange={e => setNewTask({ ...newTask, status: e.target.value as Task['status'] })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="todo">آماده انجام</option>
                         <option value="in_progress">در حال انجام</option>
