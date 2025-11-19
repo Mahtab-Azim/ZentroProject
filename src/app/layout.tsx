@@ -40,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fa" dir="rtl">
-      <body className="bg-gray-50 text-gray-900 antialiased">
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased transition-colors duration-300">
         <AuthProvider>
           <Navbar />
           <PageTransition>

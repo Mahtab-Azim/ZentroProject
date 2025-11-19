@@ -40,7 +40,7 @@ export default function AgentPage() {
     setIsLoading(true)
 
     try {
-      // اینجا API Agent رو فدا کنی
+      // اینجا API Agent رو جدا کنی
       const token = localStorage.getItem('access_token')
       
       // نمونه - بعداً با API واقعی جایگزین کن

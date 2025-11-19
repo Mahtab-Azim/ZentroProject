@@ -26,16 +26,16 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
   ];
 
   return (
-    <aside className="h-screen bg-white border-l border-border shadow-lg flex flex-col sticky top-0 overflow-y-auto overflow-x-hidden">
+    <aside className="h-screen bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-lg flex flex-col sticky top-0 overflow-y-auto overflow-x-hidden transition-colors">
       {/* Mobile Close Button */}
-      <div className="lg:hidden p-4 border-b shrink-0">
+      <div className="lg:hidden p-4 border-b border-sidebar-border shrink-0">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
       </div>
 
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 border-b shrink-0">
+      <div className="px-5 pt-6 pb-4 border-b border-sidebar-border shrink-0">
         <div className="flex items-center justify-between">
           <h1 className={`font-bold text-xl text-primary transition-all ${isOpen ? 'block' : 'hidden'}`}>
             TaskFlow
@@ -51,7 +51,7 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
             <Button
               key={item.href}
               variant={active ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3 h-12"
+              className={`w-full justify-start gap-3 h-12 ${active ? 'bg-sidebar-primary/10 text-sidebar-primary' : ''}`}
               onClick={() => router.push(item.href)}
             >
               <item.icon className="w-5 h-5 shrink-0" />
