@@ -68,26 +68,26 @@ const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: numbe
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white rounded-xl p-5 border-l-4 shadow-sm hover:shadow-lg transition-all cursor-grab active:cursor-grabbing ${priorityColor[task.priority]}`}
+      className={`bg-card text-card-foreground rounded-xl p-5 border border-border border-l-4 shadow-sm hover:shadow-lg transition-all cursor-grab active:cursor-grabbing ${priorityColor[task.priority]}`}
     >
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1">
-          <h4 className="font-bold text-gray-900">{task.title}</h4>
+          <h4 className="font-bold text-card-foreground">{task.title}</h4>
           <div className="flex flex-wrap gap-2 mt-2 text-xs">
-            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
               {task.projectName}
             </span>
-            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+            <span className="bg-muted text-muted-foreground px-3 py-1 rounded-full">
               اولویت: {priorityLabel[task.priority]}
             </span>
           </div>
           {task.description && (
-            <p className="text-sm text-gray-600 mt-3 line-clamp-2">{task.description}</p>
+            <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{task.description}</p>
           )}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
-          className="text-gray-400 hover:text-red-600 p-1 flex-shrink-0"
+          className="text-muted-foreground hover:text-destructive p-1 shrink-0"
         >
           <Trash2 size={18} />
         </button>
@@ -112,12 +112,12 @@ const KanbanColumn = ({
   return (
     <div 
       ref={setNodeRef} 
-      className={`flex-1 min-w-80 bg-gray-50 rounded-2xl p-5 flex flex-col border-2 transition-all ${
-        isOver ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+      className={`flex-1 min-w-80 bg-muted/40 rounded-2xl p-5 flex flex-col border-2 transition-all ${
+        isOver ? 'border-primary bg-primary/5' : 'border-border'
       }`}
     >
       <div className="flex items-center justify-between mb-5">
-        <h3 className="font-bold text-gray-800 text-lg">{title}</h3>
+        <h3 className="font-bold text-foreground text-lg">{title}</h3>
         <span className="bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-bold">
           {tasks.length}
         </span>
@@ -128,7 +128,7 @@ const KanbanColumn = ({
           strategy={verticalListSortingStrategy}
         >
           {tasks.length === 0 ? (
-            <p className="text-center text-gray-400 py-12 text-sm">هنوز تسکی اضافه نشده</p>
+            <p className="text-center text-muted-foreground py-12 text-sm">هنوز تسکی اضافه نشده</p>
           ) : (
             tasks.map(task => (
               <SortableTaskItem 
@@ -184,7 +184,7 @@ export default function MyTasksPage() {
       setIsLoading(true)
       setError(null)
 
-      const projectsRes = await fetch('http://127.0.0.1:8000/api/projects/projects', {
+      const projectsRes = await fetch('http://127.0.0.1:8000/api/projects', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -352,14 +352,14 @@ export default function MyTasksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-background flex transition-colors duration-300">
       {/* Kanban Section */}
-    {!isFullscreen && (
-  <div className={`flex-1 px-6 pt-24 pb-8 overflow-auto ${!isFullscreen ? 'lg:pr-[28rem]' : ''}`}>
+      {!isFullscreen && (
+        <div className={`flex-1 px-6 pt-24 pb-8 overflow-auto ${!isFullscreen ? 'lg:mr-96' : ''}`}>
           <div className="mb-8 flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">تسک های من</h1>
-              <p className="text-gray-600 mt-2">مدیریت تسک‌های خود</p>
+              <h1 className="text-4xl font-bold text-foreground">تسک های من</h1>
+              <p className="text-muted-foreground mt-2">مدیریت تسک‌های خود</p>
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
@@ -371,7 +371,7 @@ export default function MyTasksPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-5 mb-8 text-red-700 flex gap-3">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-5 mb-8 text-destructive flex gap-3">
               <AlertCircle size={24} />
               <span>{error}</span>
             </div>
@@ -380,12 +380,12 @@ export default function MyTasksPage() {
           {/* مودال اضافه کردن تسک */}
           {isAddModalOpen && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="bg-card text-card-foreground border border-border rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold">افزودن تسک جدید</h2>
+                  <h2 className="text-2xl font-bold text-card-foreground">افزودن تسک جدید</h2>
                   <button 
                     onClick={() => setIsAddModalOpen(false)} 
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <X size={28} />
                   </button>
@@ -398,7 +398,7 @@ export default function MyTasksPage() {
                       type="text"
                       value={newTask.title}
                       onChange={e => setNewTask({ ...newTask, title: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
                       placeholder="مثلاً: طراحی صفحه لاگین"
                     />
                   </div>
@@ -409,7 +409,7 @@ export default function MyTasksPage() {
                       value={newTask.description}
                       onChange={e => setNewTask({ ...newTask, description: e.target.value })}
                       rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
                       placeholder="جزئیات تسک رو بنویس..."
                     />
                   </div>
@@ -419,7 +419,7 @@ export default function MyTasksPage() {
                     <select
                       value={newTask.project_id}
                       onChange={e => setNewTask({ ...newTask, project_id: Number(e.target.value) })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
                     >
                       <option value={0}>انتخاب پروژه</option>
                       {projects.map(p => (
@@ -434,7 +434,7 @@ export default function MyTasksPage() {
                       <select
                         value={newTask.status}
                         onChange={e => setNewTask({ ...newTask, status: e.target.value as Task['status'] })}
-                        className="w-full px-5 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-5 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
                       >
                         <option value="todo">آماده انجام</option>
                         <option value="in_progress">در حال انجام</option>
@@ -448,7 +448,7 @@ export default function MyTasksPage() {
                       <select
                         value={newTask.priority}
                         onChange={e => setNewTask({ ...newTask, priority: e.target.value as Task['priority'] })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
                       >
                         <option value="low">کم</option>
                         <option value="medium">متوسط</option>
@@ -460,7 +460,7 @@ export default function MyTasksPage() {
                   <div className="flex justify-end gap-3 mt-8">
                     <button
                       onClick={() => setIsAddModalOpen(false)}
-                      className="px-6 py-3 text-gray-600 hover:text-gray-800 font-semibold rounded-lg hover:bg-gray-100"
+                      className="px-6 py-3 text-muted-foreground hover:text-foreground font-semibold rounded-lg hover:bg-muted"
                     >
                       انصراف
                     </button>
@@ -513,9 +513,9 @@ export default function MyTasksPage() {
       )}
 
       {/* Chat Sidebar */}
-      <div className={`fixed ${isFullscreen ? 'inset-0 z-50' : 'right-0 top-24 bottom-0 w-96 z-50'} bg-white ${isFullscreen ? '' : 'border-l-2 border-blue-200'} shadow-2xl flex flex-col transition-all duration-300 rounded-l-3xl overflow-hidden`}>
+      <div className={`fixed ${isFullscreen ? 'inset-0 z-50' : 'right-0 top-24 bottom-0 w-96 z-50'} bg-card ${isFullscreen ? '' : 'border-l-2 border-border'} shadow-2xl flex flex-col transition-all duration-300 rounded-l-3xl overflow-hidden`}>
         {/* Header (softer top corners and subtle shadow) */}
-        <div className={`bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between ${isFullscreen ? 'rounded-none' : 'rounded-t-3xl'} shadow-md backdrop-blur-sm`}>
+        <div className={`bg-linear-to-r from-blue-500 via-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between ${isFullscreen ? 'rounded-none' : 'rounded-t-3xl'} shadow-md backdrop-blur-sm`}>
           <h3 className="font-bold text-lg">AI Chat Interface</h3>
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
@@ -526,7 +526,7 @@ export default function MyTasksPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-card/50">
           {chatMessages.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <p className="text-center text-gray-500 text-sm">پیام جدید نوشته نشده</p>
@@ -537,7 +537,7 @@ export default function MyTasksPage() {
                 <div className={`max-w-xs p-3 rounded-2xl text-sm ${
                   msg.type === 'user'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
+                    : 'bg-muted text-muted-foreground'
                 }`}>
                   {msg.text}
                 </div>
@@ -549,7 +549,7 @@ export default function MyTasksPage() {
         {/* persistent chat (no draggable handle) */}
 
         {/* Input */}
-        <div className="p-4 border-t-2 border-gray-200 bg-gray-50">
+        <div className="p-4 border-t-2 border-border bg-muted/40">
           <div className="flex gap-2 items-center flex-row-reverse">
             <input
               type="text"
@@ -557,7 +557,7 @@ export default function MyTasksPage() {
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
               placeholder="پیام خود را بنویسید..."
-              className="flex-1 px-4 py-2 border-2 border-blue-400 rounded-2xl focus:outline-none focus:ring-0 text-sm text-right"
+              className="flex-1 px-4 py-2 border-2 border-blue-400 rounded-2xl focus:outline-none focus:ring-0 text-sm text-right bg-background text-foreground placeholder:text-muted-foreground"
             />
             <button
               onClick={handleSendMessage}
