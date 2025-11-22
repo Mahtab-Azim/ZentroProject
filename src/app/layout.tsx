@@ -41,12 +41,32 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* جلوگیری کامل از فلاش تم و جلوگیری از hydration error */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                  if (theme === 'dark' || (!theme && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (_) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+
       <body className="min-h-screen bg-background text-foreground antialiased transition-colors duration-300">
         <AuthProvider>
           <Navbar />
-          <PageTransition>
-            {children}  {/* اینجا دیگه main لازم نیست! */}
-          </PageTransition>
+          <PageTransition>{children}</PageTransition>
         </AuthProvider>
       </body>
     </html>

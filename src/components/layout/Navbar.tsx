@@ -1,12 +1,13 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import UserNav from '@/components/ui/user-nav'
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import UserNav from '@/components/ui/user-nav';
+import ThemeToggle from '../ui/ThemeToggle';
 
 const publicLinks = [
   { href: '/', label: 'خانه' },
@@ -128,6 +129,8 @@ export default function Navbar() {
 
         {/* Right side - Auth or User Menu */}
         <div className="flex items-center gap-4">
+          < ThemeToggle />
+          
           {user ? (
             <UserNav user={user} onLogout={handleLogout} />
           ) : (
