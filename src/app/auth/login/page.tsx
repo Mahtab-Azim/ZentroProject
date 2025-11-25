@@ -97,8 +97,8 @@ export default function LoginPage() {
     const isPasswordValid = formData.password.length >= 6
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 pt-20">
-            <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+        <div className="min-h-screen bg-gradient-to-br from-[var(--auth-bg-start)] via-[var(--auth-bg-mid)] to-[var(--auth-bg-end)] flex items-center justify-center p-4 pt-20">
+            <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-sm border-border">
                 <CardHeader className="text-center pb-6">
                     <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'oklch(0.6 0.2 240)' }}>
                         <Mail className="w-8 h-8 text-white" />
@@ -106,7 +106,7 @@ export default function LoginPage() {
                     <CardTitle className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))` }}>
                         ورود به زنترو
                     </CardTitle>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-muted-foreground">
                         به حساب کاربری خود وارد شوید
                     </CardDescription>
                 </CardHeader>
@@ -115,7 +115,7 @@ export default function LoginPage() {
                     <form onSubmit={handleLogin} className="space-y-4">
                         {/* Email */}
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                            <Label htmlFor="email" className="text-sm font-medium text-foreground">
                                 آدرس ایمیل
                             </Label>
                             <div className="relative">
@@ -128,14 +128,14 @@ export default function LoginPage() {
                                     value={formData.email}
                                     onChange={handleInputChange}
                                     required
-                                    className="pr-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                    className="pr-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent"
                                 />
                             </div>
                         </div>
 
                         {/* Password */}
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                            <Label htmlFor="password" className="text-sm font-medium text-foreground">
                                 رمز عبور
                             </Label>
                             <div className="relative">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                                     value={formData.password}
                                     onChange={handleInputChange}
                                     required
-                                    className="pr-10 pl-10 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                    className="pr-10 pl-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent"
                                 />
                                 <button
                                     type="button"
@@ -203,7 +203,7 @@ export default function LoginPage() {
 
                     {/* Register Link */}
                     <div className="text-center pt-4 border-t border-gray-100">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                             حساب کاربری ندارید؟{' '}
                             <Link
                                 href="/auth/register"

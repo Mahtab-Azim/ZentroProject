@@ -16,13 +16,15 @@ import {
 } from '@dnd-kit/sortable'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useDroppable } from "@dnd-kit/core"
+// import { toast } from '@/components/ui/use-toast'
 import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2 } from 'lucide-react'
 
 interface Task {
   id: number
   title: string
   description?: string
-  status: 'todo' | 'in_progress' | 'review' | 'done'
+  status: "draft" | "todo" | "in_progress" | "in_review" | "done" | "blocked"
   priority: 'low' | 'medium' | 'high'
   due_date?: string
   projectId: number
@@ -44,12 +46,12 @@ interface NewTask {
 }
 
 const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: number) => void }) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ 
-    id: task.id 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id
   })
-  
-  const style = { 
-    transform: CSS.Transform.toString(transform), 
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
@@ -107,14 +109,13 @@ const KanbanColumn = ({
   tasks: Task[]
   onDelete: (id: number) => void
 }) => {
-  const { setNodeRef, isOver } = useSortable({ id: status })
+  const { setNodeRef, isOver } = useDroppable({ id: status })
 
   return (
-    <div 
-      ref={setNodeRef} 
-      className={`flex-1 min-w-80 bg-muted/40 rounded-2xl p-5 flex flex-col border-2 transition-all ${
-        isOver ? 'border-primary bg-primary/5' : 'border-border'
-      }`}
+    <div
+      ref={setNodeRef}
+      className={`flex-1 min-w-80 bg-muted/40 rounded-2xl p-5 flex flex-col border-2 transition-all ${isOver ? 'border-primary bg-primary/10' : 'border-border'
+        }`}
     >
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-bold text-foreground text-lg">{title}</h3>
@@ -122,19 +123,19 @@ const KanbanColumn = ({
           {tasks.length}
         </span>
       </div>
+
       <div className="flex-1 overflow-y-auto space-y-4 min-h-96">
-        <SortableContext 
-          items={tasks.map(t => t.id)} 
-          strategy={verticalListSortingStrategy}
-        >
+        <SortableContext items={tasks.map(t => t.id)}>
           {tasks.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12 text-sm">هنوز تسکی اضافه نشده</p>
+            <p className="text-center text-muted-foreground py-12 text-sm">
+              هنوز تسکی اضافه نشده
+            </p>
           ) : (
             tasks.map(task => (
-              <SortableTaskItem 
-                key={task.id} 
-                task={task} 
-                onDelete={onDelete} 
+              <SortableTaskItem
+                key={task.id}
+                task={task}
+                onDelete={onDelete}
               />
             ))
           )}
@@ -165,8 +166,8 @@ export default function MyTasksPage() {
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { 
-      coordinateGetter: sortableKeyboardCoordinates 
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates
     })
   )
 
@@ -179,7 +180,7 @@ export default function MyTasksPage() {
     fetchTasks(token)
   }, [])
 
-  const fetchTasks = async (token: string) => { 
+  const fetchTasks = async (token: string) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -297,35 +298,64 @@ export default function MyTasksPage() {
     if (activeTask.status === newStatus) return
 
     const token = localStorage.getItem('access_token')
-    if (!token) return
+
+    if (!token) {
+      setError('لطفاً دوباره وارد شوید')
+      setTimeout(() => window.location.href = '/auth/login', 1500)
+      return
+    }
 
     try {
+      // 🎯 فقط فیلدهایی که حتماً لازمه رو بفرست
+      const payload: any = {
+        status: newStatus,
+      }
+
+      // اگه backend حتماً این فیلدها رو می‌خواد
+      if (activeTask.projectId) payload.project_id = activeTask.projectId
+      if (activeTask.title) payload.title = activeTask.title
+
+      console.log('📤 Payload:', JSON.stringify(payload, null, 2))
+
       const response = await fetch(
-        `http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`, 
+        `http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`,
         {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify(payload),
         }
       )
 
-      if (response.ok) {
-        setTasks(prev => 
-          prev.map(t => 
-            t.id === activeTask.id 
-              ? { ...t, status: newStatus } 
-              : t
-          )
-        )
-      } else {
-        setError('خطا در تغییر وضعیت تسک')
+      if (response.status === 401) {
+        setError('نشست منقضی شده')
+        localStorage.removeItem('access_token')
+        setTimeout(() => window.location.href = '/auth/login', 2000)
+        return
       }
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ خطای کامل:', JSON.stringify(errorData, null, 2))
+        setError(`خطا: ${errorData.detail?.[0]?.msg || JSON.stringify(errorData)}`)
+        return
+      }
+
+      console.log('✅ موفق!')
+
+      // موفقیت
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === activeTask.id
+            ? { ...t, status: newStatus }
+            : t
+        )
+      )
     } catch (err) {
-      setError('خطا در تغییر وضعیت تسک')
       console.error('خطا:', err)
+      setError('خطا در ارتباط با سرور')
     }
   }
 
@@ -340,7 +370,7 @@ export default function MyTasksPage() {
 
   const todoTasks = tasks.filter(t => t.status === 'todo')
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress')
-  const reviewTasks = tasks.filter(t => t.status === 'review')
+  const reviewTasks = tasks.filter(t => t.status === 'in_review')
   const doneTasks = tasks.filter(t => t.status === 'done')
 
   if (isLoading) {
@@ -383,8 +413,8 @@ export default function MyTasksPage() {
               <div className="bg-card text-card-foreground border border-border rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-card-foreground">افزودن تسک جدید</h2>
-                  <button 
-                    onClick={() => setIsAddModalOpen(false)} 
+                  <button
+                    onClick={() => setIsAddModalOpen(false)}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     <X size={28} />
@@ -477,35 +507,35 @@ export default function MyTasksPage() {
             </div>
           )}
 
-          <DndContext 
-            sensors={sensors} 
-            collisionDetection={closestCorners} 
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
             onDragEnd={handleDragEnd}
           >
             <div className="flex gap-6 overflow-x-auto pb-8">
-              <KanbanColumn 
-                title="آماده انجام" 
-                status="todo" 
-                tasks={todoTasks} 
-                onDelete={handleDeleteTask} 
+              <KanbanColumn
+                title="آماده انجام"
+                status="todo"
+                tasks={todoTasks}
+                onDelete={handleDeleteTask}
               />
-              <KanbanColumn 
-                title="در حال انجام" 
-                status="in_progress" 
-                tasks={inProgressTasks} 
-                onDelete={handleDeleteTask} 
+              <KanbanColumn
+                title="در حال انجام"
+                status="in_progress"
+                tasks={inProgressTasks}
+                onDelete={handleDeleteTask}
               />
-              <KanbanColumn 
-                title="بررسی/تست" 
-                status="review" 
-                tasks={reviewTasks} 
-                onDelete={handleDeleteTask} 
+              <KanbanColumn
+                title="بررسی/تست"
+                status="in_review"
+                tasks={reviewTasks}
+                onDelete={handleDeleteTask}
               />
-              <KanbanColumn 
-                title="انجام‌شده" 
-                status="done" 
-                tasks={doneTasks} 
-                onDelete={handleDeleteTask} 
+              <KanbanColumn
+                title="انجام‌شده"
+                status="done"
+                tasks={doneTasks}
+                onDelete={handleDeleteTask}
               />
             </div>
           </DndContext>
@@ -534,11 +564,10 @@ export default function MyTasksPage() {
           ) : (
             chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs p-3 rounded-2xl text-sm ${
-                  msg.type === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-muted text-muted-foreground'
-                }`}>
+                <div className={`max-w-xs p-3 rounded-2xl text-sm ${msg.type === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-muted text-muted-foreground'
+                  }`}>
                   {msg.text}
                 </div>
               </div>

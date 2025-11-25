@@ -57,79 +57,79 @@ export default function RegisterPage() {
   const doPasswordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword !== ''
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  if (!isPasswordStrong || !doPasswordsMatch) return
+    e.preventDefault()
+    if (!isPasswordStrong || !doPasswordsMatch) return
 
-  setIsLoading(true)
-  setError("")
+    setIsLoading(true)
+    setError("")
 
-  try {
-    // ثبت‌نام
-    const registerResponse = await fetch('http://127.0.0.1:8000/api/users/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: formData.email,
-        full_name: formData.full_name,
-        password: formData.password,
-        active: true
-      }),
-    })
+    try {
+      // ثبت‌نام
+      const registerResponse = await fetch('http://127.0.0.1:8000/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          full_name: formData.full_name,
+          password: formData.password,
+          active: true
+        }),
+      })
 
-    if (!registerResponse.ok) {
-      const errorData = await registerResponse.json()
-      throw new Error(errorData.detail?.[0]?.msg || errorData.detail || 'خطا در ثبت نام')
-    }
-
-    // لاگین خودکار
-    const formBody = new URLSearchParams()
-    formBody.append('username', formData.email)
-    formBody.append('password', formData.password)
-    formBody.append('grant_type', 'password')
-
-    const loginResponse = await fetch('http://127.0.0.1:8000/api/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formBody.toString()
-    })
-
-    if (!loginResponse.ok) {
-      throw new Error('لاگین خودکار ناموفق')
-    }
-
-    const loginData = await loginResponse.json()
-
-    // ذخیره داده‌ها
-    localStorage.setItem('access_token', loginData.access_token)
-    localStorage.setItem('refresh_token', loginData.refresh_token)
-    localStorage.setItem('user_email', formData.email)
-    localStorage.setItem('user_name', formData.full_name)
-
-    // ذخیره اطلاعات کاربر در localStorage
-    const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
-      headers: {
-        'Authorization': `Bearer ${loginData.access_token}`,
-        'Content-Type': 'application/json'
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json()
+        throw new Error(errorData.detail?.[0]?.msg || errorData.detail || 'خطا در ثبت نام')
       }
-    })
 
-    if (userInfoResponse.ok) {
-      const userInfo = await userInfoResponse.json()
-      localStorage.setItem('user_id', userInfo.id)
+      // لاگین خودکار
+      const formBody = new URLSearchParams()
+      formBody.append('username', formData.email)
+      formBody.append('password', formData.password)
+      formBody.append('grant_type', 'password')
+
+      const loginResponse = await fetch('http://127.0.0.1:8000/api/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody.toString()
+      })
+
+      if (!loginResponse.ok) {
+        throw new Error('لاگین خودکار ناموفق')
+      }
+
+      const loginData = await loginResponse.json()
+
+      // ذخیره داده‌ها
+      localStorage.setItem('access_token', loginData.access_token)
+      localStorage.setItem('refresh_token', loginData.refresh_token)
+      localStorage.setItem('user_email', formData.email)
+      localStorage.setItem('user_name', formData.full_name)
+
+      // ذخیره اطلاعات کاربر در localStorage
+      const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
+        headers: {
+          'Authorization': `Bearer ${loginData.access_token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (userInfoResponse.ok) {
+        const userInfo = await userInfoResponse.json()
+        localStorage.setItem('user_id', userInfo.id)
+      }
+
+      console.log('ورود موفق')
+      router.push('/dashboard')
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'خطایی رخ داد')
+    } finally {
+      setIsLoading(false)
     }
-
-    console.log('ورود موفق')
-    router.push('/dashboard')
-
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'خطایی رخ داد')
-  } finally {
-    setIsLoading(false)
   }
-}
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 pt-20">
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--auth-bg-start)] via-[var(--auth-bg-mid)] to-[var(--auth-bg-end)] flex items-center justify-center p-4 pt-20">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-sm border-border">
         <CardHeader className="space-y-1 text-center pb-6">
           <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'oklch(0.6 0.2 240)' }}>
             <User className="w-8 h-8 text-white" />
@@ -137,7 +137,7 @@ export default function RegisterPage() {
           <CardTitle className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))` }}>
             ایجاد حساب کاربری
           </CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardDescription className="text-muted-foreground">
             اطلاعات خود را وارد کنید تا حساب کاربری جدید ایجاد شود
           </CardDescription>
         </CardHeader>
@@ -146,35 +146,35 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* نام کامل */}
             <div className="space-y-2">
-              <Label htmlFor="full_name">نام کامل</Label>
+              <Label htmlFor="full_name" className="text-foreground">نام کامل</Label>
               <div className="relative">
                 <User className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="full_name" name="full_name" type="text" placeholder="نام و نام خانوادگی" value={formData.full_name} onChange={handleInputChange} required className="pr-10" />
+                <Input id="full_name" name="full_name" type="text" placeholder="نام و نام خانوادگی" value={formData.full_name} onChange={handleInputChange} required className="pr-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent" />
               </div>
             </div>
 
             {/* ایمیل */}
             <div className="space-y-2">
-              <Label htmlFor="email">ایمیل</Label>
+              <Label htmlFor="email" className="text-foreground">ایمیل</Label>
               <div className="relative">
                 <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="email" name="email" type="email" placeholder="example@email.com" value={formData.email} onChange={handleInputChange} required className="pr-10" />
+                <Input id="email" name="email" type="email" placeholder="example@email.com" value={formData.email} onChange={handleInputChange} required className="pr-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent" />
               </div>
             </div>
 
             {/* رمز عبور */}
             <div className="space-y-2">
-              <Label htmlFor="password">رمز عبور</Label>
+              <Label htmlFor="password" className="text-foreground">رمز عبور</Label>
               <div className="relative">
                 <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="رمز عبور" value={formData.password} onChange={handleInputChange} required className="pr-10 pl-10" />
+                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="رمز عبور" value={formData.password} onChange={handleInputChange} required className="pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
               {formData.password && (
-                <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
-                  <h4 className="text-xs font-medium text-gray-700 mb-2">قوت رمز عبور:</h4>
+                <div className="space-y-2 p-3 bg-muted rounded-lg">
+                  <h4 className="text-xs font-medium text-foreground mb-2">قوت رمز عبور:</h4>
                   <div className="space-y-1">
                     <PasswordRequirement met={passwordStrength.hasMinLength} text="حداقل 8 کاراکتر" />
                     <PasswordRequirement met={passwordStrength.hasUpperCase} text="شامل حروف بزرگ انگلیسی" />
@@ -188,10 +188,10 @@ export default function RegisterPage() {
 
             {/* تایید رمز */}
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">تایید رمز عبور</Label>
+              <Label htmlFor="confirmPassword" className="text-foreground">تایید رمز عبور</Label>
               <div className="relative">
                 <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="رمز عبور را مجدداً وارد کنید" value={formData.confirmPassword} onChange={handleInputChange} required className={`pr-10 pl-10 ${formData.confirmPassword && !doPasswordsMatch ? 'border-red-300' : ''}`} />
+                <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="رمز عبور را مجدداً وارد کنید" value={formData.confirmPassword} onChange={handleInputChange} required className={`pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent ${formData.confirmPassword && !doPasswordsMatch ? 'border-destructive' : ''}`} />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -212,7 +212,7 @@ export default function RegisterPage() {
           </form>
 
           <div className="text-center pt-4 border-t border-gray-100">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               حساب کاربری دارید؟ <Link href="/auth/login" className="font-medium hover:underline" style={{ color: 'oklch(0.6 0.2 240)' }}>وارد شوید</Link>
             </p>
           </div>

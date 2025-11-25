@@ -57,15 +57,59 @@
 /* ------------------------------
    Vazirmatn Font Faces
 ------------------------------ */
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Thin.woff2") format("woff2"); font-weight: 100; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-ExtraLight.woff2") format("woff2"); font-weight: 200; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Light.woff2") format("woff2"); font-weight: 300; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2"); font-weight: 400; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2"); font-weight: 500; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-weight: 600; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2"); font-weight: 700; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-ExtraBold.woff2") format("woff2"); font-weight: 800; }
-@font-face { font-family: "Vazirmatn"; src: url("/fonts/Vazirmatn-Black.woff2") format("woff2"); font-weight: 900; }
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Thin.woff2") format("woff2");
+  font-weight: 100;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-ExtraLight.woff2") format("woff2");
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Light.woff2") format("woff2");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+}
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Black.woff2") format("woff2");
+  font-weight: 900;
+}
 
 /* Default font */
 body {
@@ -105,60 +149,21 @@ body {
   --input: oklch(0.922 0 0);
   --ring: oklch(0.6 0.2 240);
 
+  /* Auth Page Gradient (Light) */
+  --auth-bg-start: #eff6ff;
+  /* blue-50 */
+  --auth-bg-mid: #ffffff;
+  /* white */
+  --auth-bg-end: #eff6ff;
+  /* blue-50 */
+
   color-scheme: light;
 }
 
 /* ------------------------------
    DARK THEME (auto via system)
 ------------------------------ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.27 0.025 255);
-    --foreground: oklch(0.98 0.015 255);
-
-    --card: oklch(0.32 0.02 255);
-    --card-foreground: oklch(0.98 0.015 255);
-
-    --popover: oklch(0.32 0.02 255);
-    --popover-foreground: oklch(0.98 0.015 255);
-
-    --primary: oklch(0.6 0.18 255);
-    --primary-foreground: oklch(0.99 0.01 255);
-
-    --secondary: oklch(0.36 0.015 260);
-    --secondary-foreground: oklch(0.92 0.01 255);
-
-    --accent: oklch(0.4 0.04 255);
-    --accent-foreground: oklch(0.99 0.01 255);
-
-    --muted: oklch(0.34 0.01 255);
-    --muted-foreground: oklch(0.74 0.015 255);
-
-    --destructive: oklch(0.63 0.2 25);
-
-    --border: oklch(0.38 0.01 255);
-    --input: oklch(0.38 0.01 255);
-    --ring: oklch(0.6 0.18 255);
-
-    /* Charts + Sidebar */
-    --chart-1: oklch(0.58 0.2 240);
-    --chart-2: oklch(0.55 0.15 200);
-    --chart-3: oklch(0.48 0.12 260);
-    --chart-4: oklch(0.65 0.18 95);
-    --chart-5: oklch(0.6 0.18 70);
-
-    --sidebar: oklch(0.3 0.015 255);
-    --sidebar-foreground: oklch(0.96 0.015 255);
-    --sidebar-primary: oklch(0.58 0.18 255);
-    --sidebar-primary-foreground: oklch(0.99 0.01 255);
-    --sidebar-accent: oklch(0.38 0.03 255);
-    --sidebar-accent-foreground: oklch(0.96 0.015 255);
-    --sidebar-border: oklch(0.4 0.01 255);
-    --sidebar-ring: oklch(0.58 0.18 255);
-
-    color-scheme: dark;
-  }
-}
+/* System dark mode removed to support manual toggle only */
 
 /* ------------------------------
    Manual .dark class override
@@ -190,6 +195,11 @@ body {
   --border: oklch(0.38 0.01 255);
   --input: oklch(0.38 0.01 255);
   --ring: oklch(0.6 0.18 255);
+
+  /* Auth Page Gradient (Dark) */
+  --auth-bg-start: var(--background);
+  --auth-bg-mid: var(--background);
+  --auth-bg-end: var(--background);
 
   color-scheme: dark;
 }
