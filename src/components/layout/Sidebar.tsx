@@ -1,7 +1,7 @@
 'use client';
 
 import { Home, ListTodo, MessageSquare, Settings, LogOut, X } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -10,82 +10,81 @@ import { User } from '@/types';
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onToggle: () => void;
   user: User;
 }
 
-export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
-  const handleLogout = () => {
-    signOut({ callbackUrl: '/login' });
-  };
+export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
 
   const menuItems = [
-    { icon: Home, label: 'داشبورد', href: '/dashboard', active: true },
-    { icon: ListTodo, label: 'وظایف', href: '/tasks', active: false },
-    { icon: MessageSquare, label: 'ارتباطات', href: '/messages', active: false },
-    { icon: Settings, label: 'تنظیمات', href: '/settings', active: false },
+    { icon: Home, label: 'داشبورد', href: '/dashboard' },
+    { icon: ListTodo, label: 'تسک ها', href: '/tasks' },
+    { icon: MessageSquare, label: 'ارتباطات', href: '/messages' },
+    { icon: Settings, label: 'تنظیمات', href: '/settings' },
   ];
 
   return (
-    <aside 
-      className={`fixed top-0 right-0 h-full bg-background border-l transition-all duration-300 z-40 shadow-xl ${
-        isOpen ? 'w-64' : 'w-0'
-      } overflow-hidden`}
-    >
-      <div className="flex flex-col h-full">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold text-primary">
-              TaskFlow
-            </h1>
+    <aside className="h-screen bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-lg flex flex-col sticky top-0 overflow-y-auto overflow-x-hidden transition-colors">
+      {/* Mobile Close Button */}
+      <div className="lg:hidden p-4 border-b border-sidebar-border shrink-0">
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Header */}
+      <div className="px-5 pt-6 pb-4 border-b border-sidebar-border shrink-0">
+        <div className="flex items-center justify-between">
+          <h1 className={`font-bold text-xl text-primary transition-all ${isOpen ? 'block' : 'hidden'}`}>
+            TaskFlow
+          </h1>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 pt-6 pb-4 space-y-2 min-h-0 overflow-y-auto">
+        {menuItems.map((item) => {
+          const active = pathname === item.href;
+          return (
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="lg:hidden"
+              key={item.href}
+              variant={active ? 'secondary' : 'ghost'}
+              className={`w-full justify-start gap-3 h-12 ${active ? 'bg-sidebar-primary/10 text-sidebar-primary' : ''}`}
+              onClick={() => router.push(item.href)}
             >
-              <X className="w-5 h-5" />
+              <item.icon className="w-5 h-5 shrink-0" />
+              {isOpen && <span>{item.label}</span>}
             </Button>
-          </div>
-          
-          <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.href}
-                variant={item.active ? 'secondary' : 'ghost'}
-                className="w-full justify-start gap-3"
-                asChild
-              >
-                <a href={item.href}>
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </a>
-              </Button>
-            ))}
-          </nav>
+          );
+        })}
+      </nav>
+
+      {/* User & Logout */}
+      <div className="p-4 border-t shrink-0">
+        <div className={`flex items-center gap-3 mb-3 ${isOpen ? 'block' : 'justify-center'}`}>
+          <Avatar className="h-10 w-10">
+            <AvatarFallback className="bg-primary text-white">
+              {user.name?.charAt(0) || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          {isOpen && (
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">{user.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          )}
         </div>
 
-        <div className="mt-auto p-6">
-          <Separator className="mb-4" />
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar>
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {user.name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm">خروج از حساب</span>
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-destructive h-12 cursor-pointer"
+          onClick={() => router.push('/auth/logout')}
+        >
+          <LogOut className="w-5 h-5 shrink-0" />
+          {isOpen && <span>خروج از حساب</span>}
+        </Button>
       </div>
     </aside>
   );

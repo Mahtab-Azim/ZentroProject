@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
-import AuthProvider from "@/components/providers/SessionProvider";
+import { AuthProvider } from "@/contexts/AuthContext";
+import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -39,11 +40,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fa" dir="rtl">
-      <body>
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* جلوگیری کامل از فلاش تم و جلوگیری از hydration error */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme');
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (_) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+
+      <body className="min-h-screen bg-background text-foreground antialiased transition-colors duration-300">
         <AuthProvider>
           <Navbar />
-          <main className="pt-16">{children}</main>
+          <PageTransition>{children}</PageTransition>
         </AuthProvider>
       </body>
     </html>
