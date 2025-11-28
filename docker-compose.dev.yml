@@ -1,0 +1,25 @@
+services:
+  zentro-front-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps # We only need dependencies for dev, we'll mount the rest
+    container_name: zentro-front-dev
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    env_file:
+      - .env.development
+      - .env
+    environment:
+      - NODE_ENV=development
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: npm run dev
