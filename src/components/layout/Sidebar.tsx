@@ -26,25 +26,25 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
   ];
 
   return (
-    <aside className="h-screen bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-lg flex flex-col sticky top-0 overflow-y-auto overflow-x-hidden transition-colors">
+    <aside className="h-full bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-lg flex flex-col overflow-y-auto overflow-x-hidden transition-colors">
       {/* Mobile Close Button */}
-      <div className="lg:hidden p-4 border-b border-sidebar-border shrink-0">
+      <div className="lg:hidden p-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-5 w-5" />
         </Button>
       </div>
 
       {/* Header */}
-      <div className="px-5 pt-6 pb-4 border-b border-sidebar-border shrink-0">
+      <div className="px-5 pt-14 pb-3 border-b border-gray-200 dark:border-gray-800 shrink-0">
         <div className="flex items-center justify-between">
           <h1 className={`font-bold text-xl text-primary transition-all ${isOpen ? 'block' : 'hidden'}`}>
-            TaskFlow
+            مدیریت تسک‌ها
           </h1>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 pt-6 pb-4 space-y-2 min-h-0 overflow-y-auto">
+      <nav className="flex-1 px-4 pt-4 pb-4 space-y-2 min-h-0 overflow-y-auto">
         {menuItems.map((item) => {
           const active = pathname === item.href;
           return (
@@ -62,7 +62,7 @@ export default function Sidebar({ isOpen, onClose, onToggle, user }: SidebarProp
       </nav>
 
       {/* User & Logout */}
-      <div className="p-4 border-t shrink-0">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0">
         <div className={`flex items-center gap-3 mb-3 ${isOpen ? 'block' : 'justify-center'}`}>
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-primary text-white">

@@ -130,7 +130,7 @@ export default function Navbar() {
         {/* Right side - Auth or User Menu */}
         <div className="flex items-center gap-4">
           < ThemeToggle />
-          
+
           {user ? (
             <UserNav user={user} onLogout={handleLogout} />
           ) : (
@@ -139,7 +139,7 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-foreground hover:text-primary hover:bg-primary/10 font-medium"
+                  className="text-foreground hover:text-primary hover:bg-primary/10 font-medium cursor-pointer"
                 >
                   ورود
                 </Button>
@@ -147,7 +147,7 @@ export default function Navbar() {
               <Link href="/auth/register">
                 <Button
                   size="sm"
-                  className="bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 font-medium"
+                  className="bg-gradient-to-r from-primary to-primary/80 text-white hover:from-primary/90 hover:to-primary/70 font-medium cursor-pointer"
                 >
                   ثبت‌نام
                 </Button>
@@ -219,13 +219,13 @@ export default function Navbar() {
           ))}
 
           {!user && (
-            <li className="flex gap-2 mt-4 pt-2 border-t border-border">
+            <li className="flex gap-2 mt-4 pt-2 border-t border-border ">
               <Button
                 variant="ghost"
                 size="sm"
                 asChild
                 className={cn(
-                  'flex-1 transform transition-all duration-300 ease-out',
+                  'flex-1 transform transition-all duration-300 ease-out cursor-pointer',
                   isMenuOpen
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-4 opacity-0'
@@ -242,7 +242,7 @@ export default function Navbar() {
                 size="sm"
                 asChild
                 className={cn(
-                  'flex-1 bg-primary hover:bg-primary/90 transform transition-all duration-300 ease-out',
+                  'flex-1 bg-primary hover:bg-primary/90 transform transition-all duration-300 ease-out cursor-pointer',
                   isMenuOpen
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-4 opacity-0'

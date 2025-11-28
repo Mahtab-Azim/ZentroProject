@@ -143,12 +143,13 @@ export default function LoginPage() {
                                 <Input
                                     id="password"
                                     name="password"
+                                    dir="ltr"
                                     type={showPassword ? 'text' : 'password'}
                                     placeholder="رمز عبور خود را وارد کنید"
                                     value={formData.password}
                                     onChange={handleInputChange}
                                     required
-                                    className="pr-10 pl-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent"
+                                    className="pr-10 pl-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent text-right"
                                 />
                                 <button
                                     type="button"

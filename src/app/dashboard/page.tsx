@@ -31,93 +31,132 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async (token: string) => {
     try {
-      // داده‌های نمونه موقت تا زمانی که API آماده شود
-      const mockData = {
-        stats: {
-          myTasks: 12,
-          completedToday: 5,
-          inProgress: 3,
-          completionRate: 75
+      setIsLoading(true)
+      
+      // ✅ دریافت پروژه‌ها
+      const projectsRes = await fetch('http://127.0.0.1:8000/api/projects', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        tasks: [
-          { 
-            id: "1", 
-            title: "طراحی صفحه داشبورد", 
-            status: "completed" as "completed", 
-            dueDate: "2025-11-05",
-            priority: "high" as "high",
-            progress: 100,
-            assigneeId: "1"
-          },
-          { 
-            id: "2", 
-            title: "پیاده‌سازی احراز هویت", 
-            status: "in-progress" as "in-progress", 
-            dueDate: "2025-11-07",
-            priority: "medium" as "medium",
-            progress: 60,
-            assigneeId: "1"
-          },
-          { 
-            id: "3", 
-            title: "بهینه‌سازی عملکرد", 
-            status: "todo" as "todo", 
-            dueDate: "2025-11-10",
-            priority: "low" as "low",
-            progress: 0,
-            assigneeId: "1"
-          }
-        ],
-        activities: [
-          { 
-            id: "1", 
-            type: "task_completed", 
-            description: "تسک طراحی صفحه داشبورد تکمیل شد", 
-            timestamp: "2025-11-03T10:30:00",
-            userId: "1",
-            userName: "کاربر",
-            action: "completed"
-          },
-          { 
-            id: "2", 
-            type: "comment_added", 
-            description: "نظر جدید در تسک پیاده‌سازی احراز هویت", 
-            timestamp: "2025-11-03T09:15:00",
-            userId: "1",
-            userName: "کاربر",
-            action: "commented"
-          }
-        ],
-        sprint: {
-          id: "1",
-          name: "Sprint 1",
-          startDate: "2025-11-01",
-          endDate: "2025-11-15",
-          progress: 45,
-          totalTasks: 10,
-          completedTasks: 4
-        },
-        weeklyData: [
-          { day: "شنبه", tasks: 5, completed: 3, inProgress: 1, total: 9 },
-          { day: "یکشنبه", tasks: 4, completed: 4, inProgress: 0, total: 8 },
-          { day: "دوشنبه", tasks: 6, completed: 5, inProgress: 1, total: 12 },
-          { day: "سه‌شنبه", tasks: 3, completed: 2, inProgress: 1, total: 6 },
-          { day: "چهارشنبه", tasks: 5, completed: 3, inProgress: 2, total: 10 },
-          { day: "پنج‌شنبه", tasks: 4, completed: 4, inProgress: 0, total: 8 },
-          { day: "جمعه", tasks: 2, completed: 1, inProgress: 1, total: 4 }
-        ]
-      };
+      })
 
-      // استفاده از داده‌های نمونه
-      setStats(mockData.stats);
-      setTasks(mockData.tasks);
-      setActivities(mockData.activities);
-      setSprint(mockData.sprint);
-      setWeeklyData(mockData.weeklyData);
+      if (!projectsRes.ok) throw new Error('خطا در دریافت پروژه‌ها')
+      const projectsList = await projectsRes.json()
+
+      // ✅ دریافت تسک‌های همه پروژه‌ها
+      let allTasks: any[] = []
+      for (const project of projectsList) {
+        try {
+          const tasksRes = await fetch(
+            `http://127.0.0.1:8000/api/projects/${project.id}/tasks`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          )
+
+          if (tasksRes.ok) {
+            const projectTasks = await tasksRes.json()
+            allTasks = [
+              ...allTasks,
+              ...projectTasks.map((t: any) => ({
+                ...t,
+                projectId: project.id,
+                projectName: project.name,
+              })),
+            ]
+          }
+        } catch (err) {
+          console.error(`خطا در دریافت تسک‌های پروژه ${project.id}:`, err)
+        }
+      }
+
+      // ✅ محاسبه آمار
+      const today = new Date().toISOString().split('T')[0]
+      const completedToday = allTasks.filter(t => 
+        t.status === 'done' && 
+        t.updated_at?.startsWith(today)
+      ).length
+
+      const inProgress = allTasks.filter(t => t.status === 'in_progress').length
+      const completed = allTasks.filter(t => t.status === 'done').length
+      const completionRate = allTasks.length > 0 
+        ? Math.round((completed / allTasks.length) * 100) 
+        : 0
+
+      setStats({
+        myTasks: allTasks.length,
+        completedToday,
+        inProgress,
+        completionRate
+      })
+
+      // ✅ تبدیل تسک‌ها به فرمت مورد نیاز
+      const formattedTasks = allTasks.slice(0, 5).map(t => ({
+        id: String(t.id),
+        title: t.title,
+        status: t.status === 'done' ? 'completed' as const : 
+                t.status === 'in_progress' ? 'in-progress' as const : 
+                'todo' as const,
+        dueDate: t.due_date || '',
+        priority: t.priority || 'medium' as const,
+        progress: t.status === 'done' ? 100 : 
+                  t.status === 'in_progress' ? 50 : 0,
+        assigneeId: String(t.assignee_id || '1')
+      }))
+      setTasks(formattedTasks)
+
+      // ✅ فعالیت‌های اخیر (از تسک‌ها استخراج می‌کنیم)
+      const recentActivities = allTasks
+        .filter(t => t.updated_at)
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .slice(0, 5)
+        .map(t => ({
+          id: String(t.id),
+          type: 'task_completed' as const,
+          description: `تسک "${t.title}" ${t.status === 'done' ? 'تکمیل شد' : 'به‌روزرسانی شد'}`,
+          timestamp: t.updated_at,
+          userId: String(t.assignee_id || '1'),
+          userName: 'کاربر',
+          action: t.status === 'done' ? 'completed' as const : 'commented' as const
+        }))
+      setActivities(recentActivities)
+
+      // ✅ اطلاعات اسپرینت (فرضی - بعداً از API بگیرید)
+      const sprintTasks = allTasks.filter(t => t.status !== 'blocked')
+      setSprint({
+        id: "1",
+        name: "Sprint فعلی",
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        progress: sprintTasks.length > 0 
+          ? Math.round((sprintTasks.filter(t => t.status === 'done').length / sprintTasks.length) * 100)
+          : 0,
+        totalTasks: sprintTasks.length,
+        completedTasks: sprintTasks.filter(t => t.status === 'done').length
+      })
+
+      // ✅ داده‌های هفتگی
+      const weekDays = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه']
+      const weekly = weekDays.map(day => {
+        const dayTasks = Math.floor(Math.random() * 8) + 2 // موقتی رندم
+        const dayCompleted = Math.floor(Math.random() * dayTasks)
+        return {
+          day,
+          tasks: dayTasks,
+          completed: dayCompleted,
+          inProgress: dayTasks - dayCompleted,
+          total: dayTasks
+        }
+      })
+      setWeeklyData(weekly)
 
     } catch (error) {
       console.error('خطا در دریافت داده‌ها:', error)
-      // اگر API نیست، فعلاً خالی بذار
+      // در صورت خطا، مقادیر خالی قرار بده
       setStats({ myTasks: 0, completedToday: 0, inProgress: 0, completionRate: 0 })
       setTasks([])
       setActivities([])
@@ -129,7 +168,7 @@ export default function DashboardPage() {
   }
 
   const user = {
-    id: localStorage.getItem('user_id') || '', 
+    id: localStorage.getItem('user_id') || '',
     name: localStorage.getItem('user_name') || 'کاربر',
     email: localStorage.getItem('user_email') || ''
   }
@@ -144,17 +183,17 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Welcome Card */}
-        <div className="rounded-xl p-6 text-white relative overflow-hidden bg-gradient-to-br from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)]">
+      <div className="space-y-4 sm:space-y-6 px-3 sm:px-0">
+        {/* Welcome Card - ریسپانسیو */}
+        <div className="rounded-xl p-4 sm:p-6 text-white relative overflow-hidden bg-gradient-to-l from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)] dark:from-[oklch(0.55_0.18_255)] dark:to-[oklch(0.45_0.18_255)]">
           <div className="relative z-10">
             <div className="max-w-xl">
-              <h2 className="text-2xl font-bold mb-2">سلام {user.name}! </h2>
-              <p className="text-blue-100 mb-6">به داشبورد خود خوش آمدید</p>
-              <div className="flex flex-wrap gap-3">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">سلام {user.name}! 👋</h2>
+              <p className="text-blue-100 mb-4 sm:mb-6 text-sm sm:text-base">به داشبورد خود خوش آمدید</p>
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Button
                   variant="outline"
-                  className="h-10 bg-white/20 hover:bg-white/30 text-white border-white/20 cursor-pointer"
+                  className="h-9 sm:h-10 bg-white/20 hover:bg-white/30 text-white border-white/20 cursor-pointer text-sm"
                   onClick={() => router.push('/tasks')}
                 >
                   مشاهده تسک‌ها
@@ -162,16 +201,16 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <div className="absolute left-0 top-0 w-48 h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute right-0 bottom-0 w-32 h-32 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
+          <div className="absolute left-0 top-0 w-32 sm:w-48 h-32 sm:h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute right-0 bottom-0 w-24 sm:w-32 h-24 sm:h-32 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
         </div>
 
-        {/* Stats Grid */}
-        <div className="mb-6">
+        {/* Stats Grid - ریسپانسیو */}
+        <div className="mb-4 sm:mb-6">
           <StatsGrid stats={stats} />
         </div>
 
-        {/* Charts Section */}
+        {/* Charts Section - ریسپانسیو */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2">
             <WeeklyChart data={weeklyData} />
@@ -181,7 +220,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Tasks and Activity Section */}
+        {/* Tasks and Activity Section - ریسپانسیو */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <TaskList tasks={tasks} />
           <ActivityFeed activities={activities} />

@@ -29,25 +29,25 @@ export default function StatsGrid({ stats }: StatsGridProps) {
       title: 'تسک‌های من',
       value: stats.myTasks,
       icon: ListTodo,
-      bgColor: 'bg-blue-50',
+      bgColor: 'bg-blue-500/10 dark:bg-blue-500/20',
     },
     {
       title: 'تکمیل شده امروز',
       value: stats.completedToday,
       icon: CheckCircle2,
-      bgColor: 'bg-green-50',
+      bgColor: 'bg-green-500/10 dark:bg-green-500/20',
     },
     {
       title: 'در حال انجام',
       value: stats.inProgress,
       icon: Clock,
-      bgColor: 'bg-orange-50',
+      bgColor: 'bg-orange-500/10 dark:bg-orange-500/20',
     },
     {
       title: 'نرخ تکمیل',
       value: `${stats.completionRate}%`,
       icon: Target,
-      bgColor: 'bg-purple-50',
+      bgColor: 'bg-purple-500/10 dark:bg-purple-500/20',
     },
   ];
 
