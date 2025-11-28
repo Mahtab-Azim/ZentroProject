@@ -20,19 +20,16 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      redirect('/auth/login')
-    }
-
-    fetchDashboardData(token)
-  }, [])
+  const [user, setUser] = useState({
+    id: '',
+    name: 'کاربر',
+    email: ''
+  })
 
   const fetchDashboardData = async (token: string) => {
     try {
       setIsLoading(true)
-      
+
       // ✅ دریافت پروژه‌ها
       const projectsRes = await fetch('http://127.0.0.1:8000/api/projects', {
         headers: {
@@ -76,15 +73,15 @@ export default function DashboardPage() {
 
       // ✅ محاسبه آمار
       const today = new Date().toISOString().split('T')[0]
-      const completedToday = allTasks.filter(t => 
-        t.status === 'done' && 
+      const completedToday = allTasks.filter(t =>
+        t.status === 'done' &&
         t.updated_at?.startsWith(today)
       ).length
 
       const inProgress = allTasks.filter(t => t.status === 'in_progress').length
       const completed = allTasks.filter(t => t.status === 'done').length
-      const completionRate = allTasks.length > 0 
-        ? Math.round((completed / allTasks.length) * 100) 
+      const completionRate = allTasks.length > 0
+        ? Math.round((completed / allTasks.length) * 100)
         : 0
 
       setStats({
@@ -98,13 +95,13 @@ export default function DashboardPage() {
       const formattedTasks = allTasks.slice(0, 5).map(t => ({
         id: String(t.id),
         title: t.title,
-        status: t.status === 'done' ? 'completed' as const : 
-                t.status === 'in_progress' ? 'in-progress' as const : 
-                'todo' as const,
+        status: t.status === 'done' ? 'completed' as const :
+          t.status === 'in_progress' ? 'in-progress' as const :
+            'todo' as const,
         dueDate: t.due_date || '',
         priority: t.priority || 'medium' as const,
-        progress: t.status === 'done' ? 100 : 
-                  t.status === 'in_progress' ? 50 : 0,
+        progress: t.status === 'done' ? 100 :
+          t.status === 'in_progress' ? 50 : 0,
         assigneeId: String(t.assignee_id || '1')
       }))
       setTasks(formattedTasks)
@@ -132,7 +129,7 @@ export default function DashboardPage() {
         name: "Sprint فعلی",
         startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        progress: sprintTasks.length > 0 
+        progress: sprintTasks.length > 0
           ? Math.round((sprintTasks.filter(t => t.status === 'done').length / sprintTasks.length) * 100)
           : 0,
         totalTasks: sprintTasks.length,
@@ -167,11 +164,23 @@ export default function DashboardPage() {
     }
   }
 
-  const user = {
-    id: localStorage.getItem('user_id') || '',
-    name: localStorage.getItem('user_name') || 'کاربر',
-    email: localStorage.getItem('user_email') || ''
-  }
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+
+    if (typeof window !== 'undefined') {
+      setUser({
+        id: localStorage.getItem('user_id') || '',
+        name: localStorage.getItem('user_name') || 'کاربر',
+        email: localStorage.getItem('user_email') || ''
+      })
+    }
+
+    if (!token) {
+      redirect('/auth/login')
+    }
+
+    fetchDashboardData(token)
+  }, [])
 
   if (isLoading) {
     return (
