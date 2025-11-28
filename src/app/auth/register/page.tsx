@@ -167,13 +167,19 @@ export default function RegisterPage() {
               <Label htmlFor="password" className="text-foreground">رمز عبور</Label>
               <div className="relative">
                 <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} placeholder="رمز عبور" value={formData.password} onChange={handleInputChange} required className="pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent" />
+                <Input id="password" name="password" dir="ltr" type={showPassword ? 'text' : 'password'} placeholder="رمز عبور" value={formData.password} onChange={handleInputChange} required className="pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent text-right" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {formData.password && (
-                <div className="space-y-2 p-3 bg-muted rounded-lg">
+              <div
+                className="overflow-hidden transition-all duration-300 ease-in-out"
+                style={{
+                  maxHeight: formData.password ? '300px' : '0px',
+                  opacity: formData.password ? 1 : 0
+                }}
+              >
+                <div className="space-y-2 p-3 bg-muted rounded-lg mt-2">
                   <h4 className="text-xs font-medium text-foreground mb-2">قوت رمز عبور:</h4>
                   <div className="space-y-1">
                     <PasswordRequirement met={passwordStrength.hasMinLength} text="حداقل 8 کاراکتر" />
@@ -183,7 +189,7 @@ export default function RegisterPage() {
                     <PasswordRequirement met={passwordStrength.hasSpecialChar} text="شامل کاراکتر خاص" />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* تایید رمز */}
@@ -191,7 +197,7 @@ export default function RegisterPage() {
               <Label htmlFor="confirmPassword" className="text-foreground">تایید رمز عبور</Label>
               <div className="relative">
                 <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input id="confirmPassword" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="رمز عبور را مجدداً وارد کنید" value={formData.confirmPassword} onChange={handleInputChange} required className={`pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent ${formData.confirmPassword && !doPasswordsMatch ? 'border-destructive' : ''}`} />
+                <Input id="confirmPassword" name="confirmPassword" dir="ltr" type={showConfirmPassword ? 'text' : 'password'} placeholder="رمز عبور را مجدداً وارد کنید" value={formData.confirmPassword} onChange={handleInputChange} required className={`pr-10 pl-10 border-input text-foreground placeholder:text-muted-foreground bg-transparent text-right ${formData.confirmPassword && !doPasswordsMatch ? 'border-destructive' : ''}`} />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

@@ -17,8 +17,11 @@ import {
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from "@dnd-kit/core"
-// import { toast } from '@/components/ui/use-toast'
-import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2 } from 'lucide-react'
+import DatePicker from "react-multi-date-picker"
+import persian from "react-date-object/calendars/persian"
+import persian_fa from "react-date-object/locales/persian_fa"
+import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight } from 'lucide-react'
+import { CustomSelect } from '@/components/ui/custom-select'
 
 interface Task {
   id: number
@@ -114,7 +117,7 @@ const KanbanColumn = ({
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-80 bg-muted/40 rounded-2xl p-5 flex flex-col border-2 transition-all ${isOver ? 'border-primary bg-primary/10' : 'border-border'
+      className={`w-full bg-muted/40 rounded-2xl p-4 sm:p-5 flex flex-col border-2 transition-all ${isOver ? 'border-primary bg-primary/10' : 'border-border'
         }`}
     >
       <div className="flex items-center justify-between mb-5">
@@ -124,7 +127,7 @@ const KanbanColumn = ({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 min-h-96">
+      <div className="flex-1 overflow-y-auto space-y-4 min-h-[300px] max-h-[600px]">
         <SortableContext items={tasks.map(t => t.id)}>
           {tasks.length === 0 ? (
             <p className="text-center text-muted-foreground py-12 text-sm">
@@ -152,8 +155,15 @@ export default function MyTasksPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isChatOpen, setIsChatOpen] = useState(false)
   const [chatMessages, setChatMessages] = useState<{ type: 'user' | 'agent'; text: string }[]>([])
   const [chatInput, setChatInput] = useState('')
+  const [selectedDate, setSelectedDate] = useState<any>(null)
+  const [user, setUser] = useState<{ name: string; email: string } | null>(null)
+  const [chats, setChats] = useState<{ id: string; title: string }[]>([])
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isAgentLoading, setIsAgentLoading] = useState(false)
 
   const [newTask, setNewTask] = useState<NewTask>({
     title: '',
@@ -173,12 +183,115 @@ export default function MyTasksPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
+    const userName = localStorage.getItem('user_name')
+    const userEmail = localStorage.getItem('user_email')
+
+    if (userName && userEmail) {
+      setUser({ name: userName, email: userEmail })
+    }
+
     if (!token) {
       window.location.href = '/auth/login'
       return
     }
     fetchTasks(token)
+    fetchChats(token)
+
+    // Open chat by default on desktop
+    if (window.innerWidth >= 1024) {
+      setIsChatOpen(true)
+    }
   }, [])
+
+  const fetchChats = async (token: string) => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/agents/chats', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setChats(data)
+      }
+    } catch (err) {
+      console.error('Error fetching chats:', err)
+    }
+  }
+
+  const fetchChatHistory = async (threadId: string) => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    try {
+      setIsAgentLoading(true)
+      const res = await fetch(`http://127.0.0.1:8000/api/agents/chats/${threadId}/history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        // Map history to chat format (adjust based on actual API response)
+        const history = data.map((msg: any) => ({
+          type: msg.role === 'user' ? 'user' : 'agent',
+          text: msg.content
+        }))
+        setChatMessages(history)
+        setCurrentChatId(threadId)
+      }
+    } catch (err) {
+      console.error('Error fetching history:', err)
+    } finally {
+      setIsAgentLoading(false)
+    }
+  }
+
+  const handleNewChat = () => {
+    setChatMessages([])
+    setCurrentChatId(null)
+  }
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return
+
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    const userMsg = { type: 'user' as const, text: chatInput }
+    setChatMessages(prev => [...prev, userMsg])
+    setChatInput('')
+    setIsAgentLoading(true)
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/agents/run', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: chatInput,
+          thread_id: currentChatId
+        })
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const agentMsg = { type: 'agent' as const, text: data.response || 'پاسخی دریافت نشد.' } // Adjust based on API
+        setChatMessages(prev => [...prev, agentMsg])
+
+        // Refresh chats list if it was a new chat
+        if (!currentChatId) {
+          fetchChats(token)
+          if (data.thread_id) setCurrentChatId(data.thread_id)
+        }
+      } else {
+        setChatMessages(prev => [...prev, { type: 'agent', text: 'خطا در برقراری ارتباط با هوش مصنوعی.' }])
+      }
+    } catch (err) {
+      console.error('Agent Error:', err)
+      setChatMessages(prev => [...prev, { type: 'agent', text: 'خطا در شبکه.' }])
+    } finally {
+      setIsAgentLoading(false)
+    }
+  }
 
   const fetchTasks = async (token: string) => {
     try {
@@ -359,14 +472,7 @@ export default function MyTasksPage() {
     }
   }
 
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return
-    setChatMessages(prev => [...prev, { type: 'user', text: chatInput }])
-    setChatInput('')
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, { type: 'agent', text: 'سلام! API من هنوز آماده نیست!' }])
-    }, 800)
-  }
+
 
   const todoTasks = tasks.filter(t => t.status === 'todo')
   const inProgressTasks = tasks.filter(t => t.status === 'in_progress')
@@ -375,29 +481,38 @@ export default function MyTasksPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex transition-colors duration-300">
+    <div className="min-h-screen bg-background flex">
       {/* Kanban Section */}
       {!isFullscreen && (
-        <div className={`flex-1 px-6 pt-24 pb-8 overflow-auto ${!isFullscreen ? 'lg:mr-96' : ''}`}>
-          <div className="mb-8 flex justify-between items-center">
+        <div className={`flex-1 px-3 sm:px-6 pt-24 pb-8 overflow-auto ${!isFullscreen ? 'lg:mr-96' : ''}`}>
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-foreground">تسک های من</h1>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">تسک های من</h1>
               <p className="text-muted-foreground mt-2">مدیریت تسک‌های خود</p>
             </div>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="bg-blue-600 text-white px-6 py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer font-semibold"
-            >
-              <Plus size={24} />
-              تسک جدید
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => window.location.href = '/dashboard'}
+                className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-400 dark:border-blue-600 px-4 py-2 rounded-xl hover:from-blue-500/20 hover:to-blue-600/20 transition-all cursor-pointer"
+              >
+                <p className="text-xs text-muted-foreground">اسپرینت فعال</p>
+                <p className="text-sm font-bold text-foreground">Sprint فعلی • {tasks.length} تسک</p>
+              </button>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="bg-blue-600 text-white px-6 py-3 sm:py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer font-semibold"
+              >
+                <Plus size={24} />
+                تسک جدید
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -446,45 +561,66 @@ export default function MyTasksPage() {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">پروژه</label>
-                    <select
+                    <CustomSelect
                       value={newTask.project_id}
-                      onChange={e => setNewTask({ ...newTask, project_id: Number(e.target.value) })}
-                      className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
-                    >
-                      <option value={0}>انتخاب پروژه</option>
-                      {projects.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => setNewTask({ ...newTask, project_id: Number(val) })}
+                      options={[
+                        { value: 0, label: 'انتخاب پروژه' },
+                        ...projects.map(p => ({ value: p.id, label: p.name }))
+                      ]}
+                      placeholder="انتخاب پروژه"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">وضعیت</label>
-                      <select
+                      <CustomSelect
                         value={newTask.status}
-                        onChange={e => setNewTask({ ...newTask, status: e.target.value as Task['status'] })}
-                        className="w-full px-5 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
-                      >
-                        <option value="todo">آماده انجام</option>
-                        <option value="in_progress">در حال انجام</option>
-                        <option value="review">بررسی/تست</option>
-                        <option value="done">انجام‌شده</option>
-                      </select>
+                        onChange={(val) => setNewTask({ ...newTask, status: val as Task['status'] })}
+                        options={[
+                          { value: 'todo', label: 'آماده انجام' },
+                          { value: 'in_progress', label: 'در حال انجام' },
+                          { value: 'review', label: 'بررسی/تست' },
+                          { value: 'done', label: 'انجام‌شده' }
+                        ]}
+                        placeholder="انتخاب وضعیت"
+                      />
                     </div>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">اولویت</label>
-                      <select
+                      <CustomSelect
                         value={newTask.priority}
-                        onChange={e => setNewTask({ ...newTask, priority: e.target.value as Task['priority'] })}
-                        className="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
-                      >
-                        <option value="low">کم</option>
-                        <option value="medium">متوسط</option>
-                        <option value="high">زیاد</option>
-                      </select>
+                        onChange={(val) => setNewTask({ ...newTask, priority: val as Task['priority'] })}
+                        options={[
+                          { value: 'low', label: 'کم' },
+                          { value: 'medium', label: 'متوسط' },
+                          { value: 'high', label: 'زیاد' }
+                        ]}
+                        placeholder="انتخاب اولویت"
+                      />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">تاریخ سررسید</label>
+                    <DatePicker
+                      value={selectedDate}
+                      onChange={(date) => {
+                        setSelectedDate(date)
+                        if (date) {
+                          const gregorianDate = date.toDate()
+                          setNewTask({ ...newTask, due_date: gregorianDate.toISOString().split('T')[0] })
+                        }
+                      }}
+                      calendar={persian}
+                      locale={persian_fa}
+                      calendarPosition="bottom-right"
+                      className="w-full"
+                      inputClass="w-full px-4 py-3 border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60"
+                      placeholder="انتخاب تاریخ"
+                    />
                   </div>
 
                   <div className="flex justify-end gap-3 mt-8">
@@ -512,7 +648,7 @@ export default function MyTasksPage() {
             collisionDetection={closestCorners}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-6 overflow-x-auto pb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 pb-8">
               <KanbanColumn
                 title="آماده انجام"
                 status="todo"
@@ -542,60 +678,172 @@ export default function MyTasksPage() {
         </div>
       )}
 
-      {/* Chat Sidebar */}
-      <div className={`fixed ${isFullscreen ? 'inset-0 z-50' : 'right-0 top-24 bottom-0 w-96 z-50'} bg-card ${isFullscreen ? '' : 'border-l-2 border-border'} shadow-2xl flex flex-col transition-all duration-300 rounded-l-3xl overflow-hidden`}>
-        {/* Header (softer top corners and subtle shadow) */}
-        <div className={`bg-linear-to-r from-blue-500 via-blue-600 to-indigo-700 text-white p-4 flex items-center justify-between ${isFullscreen ? 'rounded-none' : 'rounded-t-3xl'} shadow-md backdrop-blur-sm`}>
-          <h3 className="font-bold text-lg">AI Chat Interface</h3>
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="text-white hover:bg-white/20 p-2 rounded-lg transition-all"
-          >
-            {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
-          </button>
-        </div>
+      {/* Chat Toggle Tab (Right Side) */}
+      {!isChatOpen && (
+        <button
+          onClick={() => setIsChatOpen(true)}
+          className="fixed top-1/2 right-0 -translate-y-1/2 z-[60] bg-primary text-primary-foreground py-6 px-2 rounded-l-2xl shadow-2xl hover:bg-primary/90 transition-all flex flex-col items-center gap-2 group cursor-pointer"
+        >
+          <div className="[writing-mode:vertical-rl] rotate-180 text-xs font-bold tracking-widest opacity-70 group-hover:opacity-100 transition-opacity">
+            AI CHAT
+          </div>
+          <MessageSquare size={20} />
+        </button>
+      )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-card/50">
-          {chatMessages.length === 0 ? (
-            <div className="h-full flex items-center justify-center">
-              <p className="text-center text-gray-500 text-sm">پیام جدید نوشته نشده</p>
-            </div>
-          ) : (
-            chatMessages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-xs p-3 rounded-2xl text-sm ${msg.type === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-muted text-muted-foreground'
-                  }`}>
-                  {msg.text}
-                </div>
+      {/* Chat Sidebar/Modal */}
+      <div className={`fixed transition-all duration-300 bg-background/95 backdrop-blur-sm shadow-2xl flex overflow-hidden
+        ${isFullscreen
+          ? 'top-24 left-0 right-0 bottom-0 z-40 rounded-none'
+          : isChatOpen
+            ? 'top-24 bottom-0 right-0 w-96 z-40 rounded-l-3xl border-l border-border'
+            : 'top-24 bottom-0 right-[-100%] w-96 z-40'
+        }`}>
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col h-full relative bg-card/50">
+          {/* Header */}
+          <div className="bg-card border-b border-border p-4 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-all"
+                title="بستن چت"
+              >
+                <ChevronRight size={20} />
+              </button>
+              {isFullscreen && (
+                <button
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                >
+                  <MessageSquare size={20} className="text-muted-foreground" />
+                </button>
+              )}
+              <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                <MessageSquare size={20} />
               </div>
-            ))
-          )}
-        </div>
+              <div>
+                <h3 className="font-bold text-foreground">دستیار هوشمند</h3>
+                <p className="text-xs text-muted-foreground">
+                  {isAgentLoading ? 'درحال نوشتن...' : 'آنلاین'}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleNewChat}
+                className="text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors font-medium"
+              >
+                + چت جدید
+              </button>
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="text-muted-foreground hover:bg-muted p-2 rounded-lg transition-all hidden lg:block"
+                title={isFullscreen ? "کوچک کردن" : "تمام صفحه"}
+              >
+                {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+              </button>
+            </div>
+          </div>
 
-        {/* persistent chat (no draggable handle) */}
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 pb-32">
+            {chatMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
+                <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center">
+                  <MessageSquare size={32} className="text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">پیام جدیدی نیست. چیزی بپرسید!</p>
+              </div>
+            ) : (
+              chatMessages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.type === 'user'
+                    ? 'bg-primary text-primary-foreground rounded-br-none'
+                    : 'bg-card text-card-foreground border border-border rounded-bl-none'
+                    }`}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
-        {/* Input */}
-        <div className="p-4 border-t-2 border-border bg-muted/40">
-          <div className="flex gap-2 items-center flex-row-reverse">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-              placeholder="پیام خود را بنویسید..."
-              className="flex-1 px-4 py-2 border-2 border-blue-400 rounded-2xl focus:outline-none focus:ring-0 text-sm text-right bg-background text-foreground placeholder:text-muted-foreground"
-            />
-            <button
-              onClick={handleSendMessage}
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all"
-            >
-              <Send size={18} />
-            </button>
+          {/* Floating Input Area */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-background via-background/80 to-transparent">
+            <div className={`${isFullscreen ? 'max-w-3xl mx-auto' : 'w-full'}`}>
+              <div className="bg-card border border-border rounded-3xl shadow-xl p-2 flex items-end gap-2 relative z-10">
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!chatInput.trim()}
+                  className="p-3 bg-primary text-primary-foreground rounded-2xl hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-1"
+                >
+                  <Send size={18} className={!chatInput.trim() ? "" : "rtl:rotate-180"} />
+                </button>
+                <textarea
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="پیام خود را بنویسید..."
+                  className="flex-1 max-h-32 min-h-[44px] py-3 px-4 bg-transparent border-none focus:ring-0 focus:outline-none text-card-foreground placeholder:text-muted-foreground resize-none"
+                  rows={1}
+                />
+              </div>
+              {isFullscreen && (
+                <p className="text-center text-[10px] text-muted-foreground mt-2">
+                  هوش مصنوعی ممکن است اشتباه کند.
+                </p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Endpoints/History Sidebar (Visible only in Fullscreen - Moved to Left in RTL) */}
+        {isFullscreen && isSidebarOpen && (
+          <div className="w-64 bg-card border-r border-border hidden md:flex flex-col p-4 shrink-0 transition-all duration-300">
+            <div className="mb-6 flex-1 overflow-y-auto">
+              <h4 className="font-bold text-card-foreground mb-4 px-2">تاریخچه چت‌ها</h4>
+              <div className="space-y-2">
+                {chats.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-2">هنوز چتی ندارید.</p>
+                ) : (
+                  chats.map(chat => (
+                    <button
+                      key={chat.id}
+                      onClick={() => fetchChatHistory(chat.id)}
+                      className={`w-full text-right px-4 py-3 rounded-xl transition-colors flex items-center gap-2 text-sm ${currentChatId === chat.id
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-muted text-muted-foreground'
+                        }`}
+                    >
+                      <MessageSquare size={16} />
+                      <span className="truncate">{chat.title || 'چت بدون عنوان'}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="mt-auto border-t border-border pt-4">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-purple-500 flex items-center justify-center text-white font-bold shadow-md uppercase">
+                  {user?.name ? user.name.substring(0, 2) : 'MA'}
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-sm font-bold text-card-foreground truncate">{user?.name || 'کاربر'}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user?.email || 'user@example.com'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* chat is persistent; no reopen button */}

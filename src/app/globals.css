@@ -208,6 +208,10 @@ body {
    Base Tailwind Layer
 ------------------------------ */
 @layer base {
+  html {
+    @apply bg-background;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -215,4 +219,24 @@ body {
   body {
     @apply bg-background text-foreground antialiased;
   }
+}
+
+/* ------------------------------
+   Custom Select Dropdown Styling
+------------------------------ */
+select {
+  border-radius: 0.75rem;
+}
+
+select option {
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Dark mode dropdown options */
+.dark select option {
+  background-color: var(--card);
+  color: var(--card-foreground);
 }

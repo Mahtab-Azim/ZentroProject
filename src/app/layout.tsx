@@ -61,7 +61,7 @@ export default function RootLayout({
         />
       </head>
 
-      <body className="min-h-screen bg-background text-foreground antialiased transition-colors duration-300">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <AuthProvider>
           <Navbar />
           <PageTransition>{children}</PageTransition>
