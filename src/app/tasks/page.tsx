@@ -20,7 +20,7 @@ import { useDroppable } from "@dnd-kit/core"
 import DatePicker from "react-multi-date-picker"
 import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
-import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/custom-select'
 
 interface Task {
@@ -92,6 +92,7 @@ const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: numbe
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
+          onPointerDown={(e) => e.stopPropagation()}
           className="text-muted-foreground hover:text-destructive p-1 shrink-0"
         >
           <Trash2 size={18} />
@@ -164,6 +165,7 @@ export default function MyTasksPage() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAgentLoading, setIsAgentLoading] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
 
   const [newTask, setNewTask] = useState<NewTask>({
     title: '',
@@ -407,7 +409,24 @@ export default function MyTasksPage() {
     const activeTask = tasks.find(t => t.id === active.id)
     if (!activeTask) return
 
-    const newStatus = over.id as Task['status']
+    // اگر خود آیتم روی خودش دراپ شد
+    if (active.id === over.id) return
+
+    let newStatus = over.id as Task['status']
+
+    // تلاش برای پیدا کردن تسکی که روی آن دراپ شده (با تبدیل به رشته برای اطمینان)
+    const overTask = tasks.find(t => String(t.id) === String(over.id))
+    if (overTask) {
+      newStatus = overTask.status
+    }
+
+    // اعتبارسنجی وضعیت جدید
+    const validStatuses = ['draft', 'todo', 'in_progress', 'in_review', 'done', 'blocked']
+    if (!validStatuses.includes(newStatus)) {
+      // اگر وضعیت معتبر نیست (مثلاً ID تسک است و تسک پیدا نشده)، کاری نکنیم
+      return
+    }
+
     if (activeTask.status === newStatus) return
 
     const token = localStorage.getItem('access_token')
@@ -457,6 +476,11 @@ export default function MyTasksPage() {
       }
 
       console.log('✅ موفق!')
+
+      if (newStatus === 'done') {
+        setShowSuccessToast(true)
+        setTimeout(() => setShowSuccessToast(false), 3000)
+      }
 
       // موفقیت
       setTasks(prev =>
@@ -519,6 +543,21 @@ export default function MyTasksPage() {
             <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-5 mb-8 text-destructive flex gap-3">
               <AlertCircle size={24} />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Success Toast */}
+          {showSuccessToast && (
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-full">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg">تبریک!</h4>
+                  <p className="text-sm text-white/90">تسک با موفقیت انجام شد</p>
+                </div>
+              </div>
             </div>
           )}
 

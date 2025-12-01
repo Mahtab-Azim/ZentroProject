@@ -197,7 +197,7 @@ export default function DashboardPage() {
         <div className="rounded-xl p-4 sm:p-6 text-white relative overflow-hidden bg-gradient-to-l from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)] dark:from-[oklch(0.55_0.18_255)] dark:to-[oklch(0.45_0.18_255)]">
           <div className="relative z-10">
             <div className="max-w-xl">
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">سلام {user.name}! 👋</h2>
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">سلام {user.name}!</h2>
               <p className="text-blue-100 mb-4 sm:mb-6 text-sm sm:text-base">به داشبورد خود خوش آمدید</p>
               <div className="flex flex-wrap gap-2 sm:gap-3">
                 <Button
