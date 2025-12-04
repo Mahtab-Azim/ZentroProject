@@ -20,7 +20,7 @@ import { useDroppable } from "@dnd-kit/core"
 import DatePicker from "react-multi-date-picker"
 import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
-import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight } from 'lucide-react'
+import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight, CheckCircle2, Edit2 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/custom-select'
 
 interface Task {
@@ -48,7 +48,7 @@ interface NewTask {
   project_id: number
 }
 
-const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: number) => void }) => {
+const SortableTaskItem = ({ task, onDelete, onEdit }: { task: Task; onDelete: (id: number) => void; onEdit: (task: Task) => void }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id
   })
@@ -90,12 +90,22 @@ const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: numbe
             <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{task.description}</p>
           )}
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
-          className="text-muted-foreground hover:text-destructive p-1 shrink-0"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(task) }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="text-muted-foreground hover:text-blue-500 p-1 shrink-0"
+          >
+            <Edit2 size={18} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(task.id) }}
+            onPointerDown={(e) => e.stopPropagation()} // Fix: Stop propagation to prevent drag start
+            className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -106,11 +116,13 @@ const KanbanColumn = ({
   status,
   tasks,
   onDelete,
+  onEdit,
 }: {
   title: string
   status: Task['status']
   tasks: Task[]
   onDelete: (id: number) => void
+  onEdit: (task: Task) => void
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: status })
 
@@ -139,6 +151,7 @@ const KanbanColumn = ({
                 key={task.id}
                 task={task}
                 onDelete={onDelete}
+                onEdit={onEdit}
               />
             ))
           )}
@@ -164,6 +177,8 @@ export default function MyTasksPage() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAgentLoading, setIsAgentLoading] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
 
   const [newTask, setNewTask] = useState<NewTask>({
     title: '',
@@ -353,19 +368,42 @@ export default function MyTasksPage() {
     if (!token || !newTask.project_id || !newTask.title) return
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/projects/tasks', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newTask),
-      })
+      if (editingTaskId) {
+        // Update existing task
+        const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${editingTaskId}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newTask),
+        })
 
-      if (!response.ok) throw new Error('خطا در ایجاد تسک')
+        if (!response.ok) throw new Error('خطا در ویرایش تسک')
 
-      await fetchTasks(token)
+        // Update local state
+        setTasks(prev => prev.map(t =>
+          t.id === editingTaskId
+            ? { ...t, ...newTask, projectId: newTask.project_id, projectName: projects.find(p => p.id === newTask.project_id)?.name || '' }
+            : t
+        ))
+      } else {
+        // Create new task
+        const response = await fetch('http://127.0.0.1:8000/api/projects/tasks', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newTask),
+        })
+
+        if (!response.ok) throw new Error('خطا در ایجاد تسک')
+        await fetchTasks(token)
+      }
+
       setIsAddModalOpen(false)
+      setEditingTaskId(null)
       setNewTask({
         title: '',
         description: '',
@@ -375,8 +413,40 @@ export default function MyTasksPage() {
         project_id: 0,
       })
     } catch (err) {
-      setError('خطا در ایجاد تسک جدید')
+      setError(editingTaskId ? 'خطا در ویرایش تسک' : 'خطا در ایجاد تسک جدید')
     }
+  }
+
+  const openEditModal = (task: Task) => {
+    setEditingTaskId(task.id)
+    setNewTask({
+      title: task.title,
+      description: task.description || '',
+      status: task.status,
+      priority: task.priority,
+      due_date: task.due_date || '',
+      project_id: task.projectId,
+    })
+    if (task.due_date) {
+      setSelectedDate(new Date(task.due_date))
+    } else {
+      setSelectedDate(null)
+    }
+    setIsAddModalOpen(true)
+  }
+
+  const openAddModal = () => {
+    setEditingTaskId(null)
+    setNewTask({
+      title: '',
+      description: '',
+      status: 'todo',
+      priority: 'medium',
+      due_date: '',
+      project_id: 0,
+    })
+    setSelectedDate(null)
+    setIsAddModalOpen(true)
   }
 
   const handleDeleteTask = async (taskId: number) => {
@@ -407,7 +477,25 @@ export default function MyTasksPage() {
     const activeTask = tasks.find(t => t.id === active.id)
     if (!activeTask) return
 
-    const newStatus = over.id as Task['status']
+    // اگر خود آیتم روی خودش دراپ شد
+    if (active.id === over.id) return
+
+    let newStatus = over.id as Task['status']
+
+    // تلاش برای پیدا کردن تسکی که روی آن دراپ شده (با تبدیل به رشته برای اطمینان)
+    const overTask = tasks.find(t => String(t.id) === String(over.id))
+    if (overTask) {
+      newStatus = overTask.status
+    }
+
+    // اعتبارسنجی وضعیت جدید
+    const validStatuses = ['draft', 'todo', 'in_progress', 'in_review', 'done', 'blocked']
+    if (!validStatuses.includes(newStatus)) {
+      // اگر وضعیت معتبر نیست (مثلاً ID تسک است و تسک پیدا نشده)، کاری نکنیم
+      console.log('Invalid status, ignoring:', newStatus)
+      return
+    }
+
     if (activeTask.status === newStatus) return
 
     const token = localStorage.getItem('access_token')
@@ -458,6 +546,11 @@ export default function MyTasksPage() {
 
       console.log('✅ موفق!')
 
+      if (newStatus === 'done') {
+        setShowSuccessToast(true)
+        setTimeout(() => setShowSuccessToast(false), 3000)
+      }
+
       // موفقیت
       setTasks(prev =>
         prev.map(t =>
@@ -499,6 +592,12 @@ export default function MyTasksPage() {
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button
+                onClick={() => window.location.href = '/projects'}
+                className="bg-gradient-to-r from-cyan-500/10 to-blue-600/10 border border-cyan-400 dark:border-cyan-600 px-4 py-2 rounded-xl hover:from-cyan-500/20 hover:to-blue-600/20 transition-all cursor-pointer flex items-center gap-2"
+              >
+                <p className="text-sm font-bold text-foreground">مدیریت پروژه‌ها</p>
+              </button>
+              <button
                 onClick={() => window.location.href = '/dashboard'}
                 className="bg-gradient-to-r from-blue-500/10 to-blue-600/10 border border-blue-400 dark:border-blue-600 px-4 py-2 rounded-xl hover:from-blue-500/20 hover:to-blue-600/20 transition-all cursor-pointer"
               >
@@ -506,7 +605,7 @@ export default function MyTasksPage() {
                 <p className="text-sm font-bold text-foreground">Sprint فعلی • {tasks.length} تسک</p>
               </button>
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={openAddModal}
                 className="bg-blue-600 text-white px-6 py-3 sm:py-4 rounded-2xl flex items-center gap-3 hover:bg-blue-700 shadow-xl transition-all cursor-pointer font-semibold"
               >
                 <Plus size={24} />
@@ -522,12 +621,27 @@ export default function MyTasksPage() {
             </div>
           )}
 
+          {/* Success Toast */}
+          {showSuccessToast && (
+            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-green-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-full">
+                  <CheckCircle2 size={24} />
+                </div>
+                <div>
+                  <h4 className="font-bold text-lg">تبریک!</h4>
+                  <p className="text-sm text-white/90">تسک با موفقیت انجام شد</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* مودال اضافه کردن تسک */}
           {isAddModalOpen && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
               <div className="bg-card text-card-foreground border border-border rounded-2xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-card-foreground">افزودن تسک جدید</h2>
+                  <h2 className="text-2xl font-bold text-card-foreground">{editingTaskId ? 'ویرایش تسک' : 'افزودن تسک جدید'}</h2>
                   <button
                     onClick={() => setIsAddModalOpen(false)}
                     className="text-muted-foreground hover:text-foreground"
@@ -635,7 +749,7 @@ export default function MyTasksPage() {
                       disabled={!newTask.title || !newTask.project_id}
                       className="bg-blue-600 text-white px-8 py-3 rounded-xl hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-lg cursor-pointer transition-all"
                     >
-                      ایجاد تسک
+                      {editingTaskId ? 'ذخیره تغییرات' : 'ایجاد تسک'}
                     </button>
                   </div>
                 </div>
@@ -654,24 +768,28 @@ export default function MyTasksPage() {
                 status="todo"
                 tasks={todoTasks}
                 onDelete={handleDeleteTask}
+                onEdit={openEditModal}
               />
               <KanbanColumn
                 title="در حال انجام"
                 status="in_progress"
                 tasks={inProgressTasks}
                 onDelete={handleDeleteTask}
+                onEdit={openEditModal}
               />
               <KanbanColumn
                 title="بررسی/تست"
                 status="in_review"
                 tasks={reviewTasks}
                 onDelete={handleDeleteTask}
+                onEdit={openEditModal}
               />
               <KanbanColumn
                 title="انجام‌شده"
                 status="done"
                 tasks={doneTasks}
                 onDelete={handleDeleteTask}
+                onEdit={openEditModal}
               />
             </div>
           </DndContext>

@@ -1,0 +1,660 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+    Plus,
+    Users,
+    Calendar,
+    Search,
+    Filter,
+    ArrowRight,
+    Clock,
+    X,
+    CheckCircle2,
+    Loader2,
+    Briefcase
+} from 'lucide-react'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { CustomSelect } from '@/components/ui/custom-select'
+import DatePicker from "react-multi-date-picker"
+import persian from "react-date-object/calendars/persian"
+import persian_fa from "react-date-object/locales/persian_fa"
+
+// Types
+interface User {
+    id: number
+    name: string
+    email: string
+}
+
+interface Sprint {
+    id: number
+    name: string
+    description?: string
+    startDate: string
+    endDate: string
+    status: 'active' | 'planned' | 'completed'
+    progress: number
+    is_active: boolean
+}
+
+interface Project {
+    id: number
+    name: string
+    description: string
+    members: any[] // API might return different structure
+    sprints: Sprint[]
+    created_at?: string
+}
+
+export default function ProjectsPage() {
+    const router = useRouter()
+    const [projects, setProjects] = useState<Project[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<'members' | 'sprints'>('members')
+
+    // Filter & Search
+    const [searchQuery, setSearchQuery] = useState('')
+    const [isFilterOpen, setIsFilterOpen] = useState(false)
+    const [filterRole, setFilterRole] = useState<string>('all')
+    const [filterSprint, setFilterSprint] = useState<string>('all')
+    const [filterMembers, setFilterMembers] = useState<string>('all')
+
+    // Forms
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [newProjectName, setNewProjectName] = useState('')
+    const [newProjectDesc, setNewProjectDesc] = useState('')
+
+    const [newMemberId, setNewMemberId] = useState<string>('')
+    const [newMemberRole, setNewMemberRole] = useState('member')
+    const [users, setUsers] = useState<User[]>([])
+
+    const [newSprintName, setNewSprintName] = useState('')
+    const [newSprintDesc, setNewSprintDesc] = useState('')
+    const [newSprintStart, setNewSprintStart] = useState<any>(null)
+    const [newSprintEnd, setNewSprintEnd] = useState<any>(null)
+
+    // Fetch Data
+    const fetchProjects = async () => {
+        try {
+            setIsLoading(true)
+            const token = localStorage.getItem('access_token')
+            const res = await fetch('http://127.0.0.1:8000/api/projects', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                // Ensure sprints array exists
+                const projectsWithSprints = await Promise.all(data.map(async (p: any) => {
+                    // Fetch sprints for each project to show active sprint in card
+                    try {
+                        const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${p.id}/sprints`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        })
+                        const sprints = sprintsRes.ok ? await sprintsRes.json() : []
+                        return { ...p, sprints, members: p.members || [] }
+                    } catch (e) {
+                        return { ...p, sprints: [], members: p.members || [] }
+                    }
+                }))
+                setProjects(projectsWithSprints)
+            }
+        } catch (error) {
+            console.error('Error fetching projects:', error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const fetchUsers = async () => {
+        try {
+            const token = localStorage.getItem('access_token')
+            // Assuming this endpoint exists based on standard patterns, or we might need to rely on search
+            // Since user didn't give GET /api/users, we'll try it. If fails, we might need another way.
+            const res = await fetch('http://127.0.0.1:8000/api/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setUsers(data)
+            } else {
+                // Fallback mock if API is missing for users list (to prevent UI breaking)
+                console.warn('Could not fetch users list')
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error)
+        }
+    }
+
+    useEffect(() => {
+        fetchProjects()
+        fetchUsers()
+    }, [])
+
+    // Actions
+    const handleCreateProject = async () => {
+        if (!newProjectName) return
+        const token = localStorage.getItem('access_token')
+        try {
+            const res = await fetch('http://127.0.0.1:8000/api/projects', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: newProjectName,
+                    description: newProjectDesc
+                })
+            })
+            if (res.ok) {
+                setIsCreateModalOpen(false)
+                setNewProjectName('')
+                setNewProjectDesc('')
+                fetchProjects()
+            }
+        } catch (error) {
+            console.error('Error creating project:', error)
+        }
+    }
+
+    const handleAddMember = async () => {
+        if (!selectedProject || !newMemberId) return
+        const token = localStorage.getItem('access_token')
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/users/${newMemberId}?role=${newMemberRole}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (res.ok) {
+                // Refresh project details
+                // Ideally we fetch just this project, but for now re-fetch all or update local state
+                alert('کاربر با موفقیت اضافه شد')
+                setNewMemberId('')
+                fetchProjects() // Simple refresh
+            } else {
+                alert('خطا در افزودن کاربر')
+            }
+        } catch (error) {
+            console.error('Error adding member:', error)
+        }
+    }
+
+    const handleCreateSprint = async () => {
+        if (!selectedProject || !newSprintName) return
+        const token = localStorage.getItem('access_token')
+        try {
+            const payload = {
+                project_id: selectedProject.id,
+                name: newSprintName,
+                description: newSprintDesc,
+                start_date: newSprintStart ? newSprintStart.toDate().toISOString().split('T')[0] : '',
+                end_date: newSprintEnd ? newSprintEnd.toDate().toISOString().split('T')[0] : '',
+                is_active: false
+            }
+
+            const res = await fetch('http://127.0.0.1:8000/api/projects/sprints', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+
+            if (res.ok) {
+                alert('اسپرینت ساخته شد')
+                setNewSprintName('')
+                setNewSprintDesc('')
+                setNewSprintStart(null)
+                setNewSprintEnd(null)
+
+                // Refresh sprints for selected project
+                const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (sprintsRes.ok) {
+                    const sprints = await sprintsRes.json()
+                    setSelectedProject({ ...selectedProject, sprints })
+                    // Also update main list
+                    setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
+                }
+            }
+        } catch (error) {
+            console.error('Error creating sprint:', error)
+        }
+    }
+
+    const handleActivateSprint = async (sprintId: number) => {
+        if (!selectedProject) return
+        const token = localStorage.getItem('access_token')
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints/${sprintId}/activate`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (res.ok) {
+                alert('اسپرینت فعال شد')
+                // Refresh sprints
+                const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (sprintsRes.ok) {
+                    const sprints = await sprintsRes.json()
+                    setSelectedProject({ ...selectedProject, sprints })
+                    setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
+                }
+            }
+        } catch (error) {
+            console.error('Error activating sprint:', error)
+        }
+    }
+
+    // Filter & Search Logic
+    const filteredProjects = projects.filter(project => {
+        // Search filter
+        if (searchQuery && !project.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            !project.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
+            return false
+        }
+
+        // Role filter
+        if (filterRole !== 'all') {
+            const userRole = project.members?.find((m: any) => m.role === filterRole)
+            if (!userRole) return false
+        }
+
+        // Sprint filter
+        if (filterSprint === 'active' && !project.sprints?.find(s => s.is_active)) return false
+        if (filterSprint === 'inactive' && project.sprints?.find(s => s.is_active)) return false
+
+        // Members count filter
+        const memberCount = project.members?.length || 0
+        if (filterMembers === 'small' && memberCount > 5) return false
+        if (filterMembers === 'medium' && (memberCount <= 5 || memberCount > 15)) return false
+        if (filterMembers === 'large' && memberCount <= 15) return false
+
+        return true
+    })
+
+    return (
+        <div className="min-h-screen bg-background p-4 sm:p-8 pt-24 mt-18">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+                            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
+                                <Briefcase className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            پروژه‌ها
+                        </h1>
+                        <p className="text-muted-foreground mt-2">مدیریت پروژه‌ها، اعضا و اسپرینت‌ها</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => router.push('/tasks')} className="border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer">
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                            بازگشت به تسک‌ها
+                        </Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 cursor-pointer" onClick={() => setIsCreateModalOpen(true)}>
+                            <Plus className="w-4 h-4 ml-2" />
+                            پروژه جدید
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Search & Filter */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                    <div className="relative flex-1">
+                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                            placeholder="جستجوی پروژه..."
+                            className="pr-10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+                    <div className="relative">
+                        <Button
+                            variant="outline"
+                            className="w-full sm:w-auto cursor-pointer"
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        >
+                            <Filter className="w-4 h-4 ml-2" />
+                            فیلترها
+                            {(filterRole !== 'all' || filterSprint !== 'all' || filterMembers !== 'all') && (
+                                <Badge className="mr-2 h-5 w-5 rounded-full p-0 flex items-center justify-center bg-primary text-xs">!</Badge>
+                            )}
+                        </Button>
+
+                        {/* Filter Dropdown */}
+                        {isFilterOpen && (
+                            <div className="absolute left-0 top-full mt-2 w-80 bg-card border rounded-xl shadow-xl p-4 z-50 space-y-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="font-semibold">فیلترها</h3>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                            setFilterRole('all')
+                                            setFilterSprint('all')
+                                            setFilterMembers('all')
+                                        }}
+                                        className="text-xs h-7"
+                                    >
+                                        پاک کردن همه
+                                    </Button>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">نقش من در پروژه</label>
+                                    <CustomSelect
+                                        value={filterRole}
+                                        onChange={(val) => setFilterRole(val as string)}
+                                        options={[
+                                            { value: 'all', label: 'همه' },
+                                            { value: 'admin', label: 'مدیر' },
+                                            { value: 'member', label: 'عضو' },
+                                            { value: 'viewer', label: 'مشاهده‌گر' },
+                                        ]}
+                                        placeholder="انتخاب نقش"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">وضعیت اسپرینت</label>
+                                    <CustomSelect
+                                        value={filterSprint}
+                                        onChange={(val) => setFilterSprint(val as string)}
+                                        options={[
+                                            { value: 'all', label: 'همه' },
+                                            { value: 'active', label: 'دارای اسپرینت فعال' },
+                                            { value: 'inactive', label: 'بدون اسپرینت فعال' },
+                                        ]}
+                                        placeholder="وضعیت اسپرینت"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium mb-2 block">تعداد اعضا</label>
+                                    <CustomSelect
+                                        value={filterMembers}
+                                        onChange={(val) => setFilterMembers(val as string)}
+                                        options={[
+                                            { value: 'all', label: 'همه' },
+                                            { value: 'small', label: 'کوچک (1-5 نفر)' },
+                                            { value: 'medium', label: 'متوسط (6-15 نفر)' },
+                                            { value: 'large', label: 'بزرگ (15+ نفر)' },
+                                        ]}
+                                        placeholder="تعداد اعضا"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Projects Grid */}
+                {isLoading ? (
+                    <div className="flex justify-center py-20">
+                        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredProjects.length === 0 ? (
+                            <div className="col-span-full text-center py-12">
+                                <Briefcase className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-20" />
+                                <p className="text-muted-foreground">پروژه‌ای یافت نشد</p>
+                            </div>
+                        ) : filteredProjects.map(project => (
+                            <Card
+                                key={project.id}
+                                className="hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer group border-border/50 hover:border-primary/30 bg-gradient-to-br from-card via-primary/5 to-primary/10 dark:from-card dark:via-primary/5 dark:to-card"
+                                onClick={() => { setSelectedProject(project); setIsModalOpen(true); }}
+                            >
+                                <CardHeader>
+                                    <div className="flex justify-between items-start">
+                                        <CardTitle className="text-xl group-hover:text-primary transition-colors">{project.name}</CardTitle>
+                                        <Badge variant="secondary" className="bg-primary/10 text-primary">
+                                            {project.members?.length || 0} عضو
+                                        </Badge>
+                                    </div>
+                                    <CardDescription className="line-clamp-2 mt-2">
+                                        {project.description || 'بدون توضیحات'}
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                                        <Clock className="w-4 h-4" />
+                                        <span>ایجاد: {project.created_at ? new Date(project.created_at).toLocaleDateString('fa-IR') : '-'}</span>
+                                    </div>
+                                    {/* Members Avatars (Placeholder if no avatars) */}
+                                    <div className="flex -space-x-2 space-x-reverse overflow-hidden">
+                                        {project.members?.slice(0, 4).map((member: any) => (
+                                            <Avatar key={member.id} className="border-2 border-background w-8 h-8">
+                                                <AvatarFallback className="bg-primary/15 text-primary text-xs">
+                                                    {member.name ? member.name.slice(0, 1) : 'U'}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="border-t bg-primary/5 p-4">
+                                    <div className="w-full flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">اسپرینت فعال:</span>
+                                        <span className="font-medium text-primary">
+                                            {project.sprints?.find(s => s.is_active)?.name || 'ندارد'}
+                                        </span>
+                                    </div>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+
+                {/* Create Project Modal */}
+                {isCreateModalOpen && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                        <div className="bg-background border border-border rounded-2xl w-full max-w-lg shadow-2xl p-6">
+                            <h2 className="text-2xl font-bold mb-4">ایجاد پروژه جدید</h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">نام پروژه</label>
+                                    <Input value={newProjectName} onChange={e => setNewProjectName(e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium mb-1 block">توضیحات</label>
+                                    <Input value={newProjectDesc} onChange={e => setNewProjectDesc(e.target.value)} />
+                                </div>
+                                <div className="flex justify-end gap-2 mt-6">
+                                    <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)}>انصراف</Button>
+                                    <Button onClick={handleCreateProject} className="bg-blue-600 text-white">ایجاد</Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Project Details Modal */}
+                {isModalOpen && selectedProject && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+                        <div className="bg-background border border-border rounded-2xl w-full max-w-3xl shadow-2xl max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
+
+                            {/* Modal Header */}
+                            <div className="p-6 border-b flex justify-between items-center bg-blue-50/30 dark:bg-blue-900/10">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                                        {selectedProject.name}
+                                        <Badge variant="outline" className="text-xs font-normal">
+                                            {selectedProject.sprints?.length || 0} اسپرینت
+                                        </Badge>
+                                    </h2>
+                                    <p className="text-muted-foreground text-sm mt-1">{selectedProject.description}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
+                                    <X className="w-6 h-6" />
+                                </Button>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex border-b px-6">
+                                <button
+                                    onClick={() => setActiveTab('members')}
+                                    className={`py-4 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'members'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                        }`}
+                                >
+                                    اعضا و دسترسی‌ها
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('sprints')}
+                                    className={`py-4 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'sprints'
+                                        ? 'border-blue-600 text-blue-600'
+                                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                                        }`}
+                                >
+                                    اسپرینت‌ها
+                                </button>
+                            </div>
+
+                            {/* Modal Content */}
+                            <div className="p-6 overflow-y-auto flex-1">
+
+                                {/* Members Tab */}
+                                {activeTab === 'members' && (
+                                    <div className="space-y-6">
+                                        {/* Add Member */}
+                                        <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 space-y-4">
+                                            <h3 className="font-semibold text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                <Plus className="w-4 h-4" />
+                                                افزودن عضو جدید
+                                            </h3>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <div className="flex-1">
+                                                    <CustomSelect
+                                                        value={newMemberId}
+                                                        onChange={(val) => setNewMemberId(String(val))}
+                                                        options={users.map(u => ({ value: String(u.id), label: u.name || u.email }))}
+                                                        placeholder="انتخاب کاربر"
+                                                    />
+                                                </div>
+                                                <div className="w-full sm:w-40">
+                                                    <CustomSelect
+                                                        value={newMemberRole}
+                                                        onChange={(val) => setNewMemberRole(val as string)}
+                                                        options={[
+                                                            { value: 'admin', label: 'مدیر' },
+                                                            { value: 'member', label: 'عضو' },
+                                                            { value: 'viewer', label: 'مشاهده‌گر' },
+                                                        ]}
+                                                        placeholder="نقش"
+                                                    />
+                                                </div>
+                                                <Button onClick={handleAddMember} disabled={!newMemberId} className="bg-blue-600 text-white">افزودن</Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Members List */}
+                                        <div className="space-y-3">
+                                            {selectedProject.members?.length === 0 && <p className="text-center text-muted-foreground">هنوز عضوی اضافه نشده است</p>}
+                                            {selectedProject.members?.map((member: any) => (
+                                                <div key={member.id} className="flex items-center justify-between p-3 bg-card border rounded-xl hover:bg-muted/20 transition-colors">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar>
+                                                            <AvatarFallback className="bg-blue-100 text-blue-700">{member.name ? member.name.slice(0, 1) : 'U'}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div>
+                                                            <p className="font-medium text-sm">{member.name || 'کاربر بدون نام'}</p>
+                                                            <p className="text-xs text-muted-foreground">{member.email}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Badge variant="outline">{member.role || 'member'}</Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sprints Tab */}
+                                {activeTab === 'sprints' && (
+                                    <div className="space-y-6">
+                                        {/* Create Sprint */}
+                                        <div className="bg-blue-50/50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800 space-y-4">
+                                            <h3 className="font-semibold text-sm flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                <Plus className="w-4 h-4" />
+                                                ساخت اسپرینت جدید
+                                            </h3>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <Input placeholder="نام اسپرینت" value={newSprintName} onChange={e => setNewSprintName(e.target.value)} className="bg-background" />
+                                                <Input placeholder="توضیحات" value={newSprintDesc} onChange={e => setNewSprintDesc(e.target.value)} className="bg-background" />
+                                                <div className="sm:col-span-2 grid grid-cols-2 gap-3">
+                                                    <DatePicker
+                                                        value={newSprintStart}
+                                                        onChange={setNewSprintStart}
+                                                        calendar={persian}
+                                                        locale={persian_fa}
+                                                        placeholder="تاریخ شروع"
+                                                        inputClass="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                                                    />
+                                                    <DatePicker
+                                                        value={newSprintEnd}
+                                                        onChange={setNewSprintEnd}
+                                                        calendar={persian}
+                                                        locale={persian_fa}
+                                                        placeholder="تاریخ پایان"
+                                                        inputClass="w-full px-3 py-2 border rounded-md bg-background text-sm"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <Button onClick={handleCreateSprint} disabled={!newSprintName} className="w-full bg-blue-600 text-white">ساخت اسپرینت</Button>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            {selectedProject.sprints?.map(sprint => (
+                                                <div key={sprint.id} className={`border rounded-xl p-4 transition-all ${sprint.is_active ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-sm' : 'hover:border-blue-300'}`}>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-bold text-foreground flex items-center gap-2">
+                                                                {sprint.name}
+                                                                {sprint.is_active && <Badge className="bg-blue-600 hover:bg-blue-700">فعال</Badge>}
+                                                            </h4>
+                                                            <p className="text-xs text-muted-foreground mt-1">
+                                                                {sprint.startDate} تا {sprint.endDate}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground mt-1">{sprint.description}</p>
+                                                        </div>
+                                                        {!sprint.is_active && (
+                                                            <Button size="sm" variant="outline" onClick={() => handleActivateSprint(sprint.id)} className="text-xs h-8">
+                                                                فعال‌سازی
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {(!selectedProject.sprints || selectedProject.sprints.length === 0) && (
+                                                <div className="text-center py-8 text-muted-foreground">
+                                                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                                    <p>هیچ اسپرینتی تعریف نشده است</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+            </div>
+        </div>
+    )
+}
