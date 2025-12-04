@@ -10,6 +10,7 @@ import SprintProgress from '@/components/dashboard/SprintProgress'
 import WeeklyChart from '@/components/dashboard/WeeklyChart'
 import { Button } from '@/components/ui/button'
 import { Stats, Task, Activity, Sprint, WeeklyData } from '@/types'
+import { api } from '@/lib/api-client'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -31,41 +32,21 @@ export default function DashboardPage() {
       setIsLoading(true)
 
       // ✅ دریافت پروژه‌ها
-      const projectsRes = await fetch('http://127.0.0.1:8000/api/projects', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!projectsRes.ok) throw new Error('خطا در دریافت پروژه‌ها')
-      const projectsList = await projectsRes.json()
+      const projectsList = await api.projects.list(token)
 
       // ✅ دریافت تسک‌های همه پروژه‌ها
       let allTasks: any[] = []
       for (const project of projectsList) {
         try {
-          const tasksRes = await fetch(
-            `http://127.0.0.1:8000/api/projects/${project.id}/tasks`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          )
-
-          if (tasksRes.ok) {
-            const projectTasks = await tasksRes.json()
-            allTasks = [
-              ...allTasks,
-              ...projectTasks.map((t: any) => ({
-                ...t,
-                projectId: project.id,
-                projectName: project.name,
-              })),
-            ]
-          }
+          const projectTasks = await api.projects.getTasks(project.id, token)
+          allTasks = [
+            ...allTasks,
+            ...projectTasks.map((t: any) => ({
+              ...t,
+              projectId: project.id,
+              projectName: project.name,
+            })),
+          ]
         } catch (err) {
           console.error(`خطا در دریافت تسک‌های پروژه ${project.id}:`, err)
         }

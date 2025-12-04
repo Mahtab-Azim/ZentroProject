@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Eye, EyeOff, User, Mail, Lock, CheckCircle2, XCircle } from 'lucide-react'
 import Link from 'next/link'
+import { api } from '@/lib/api-client'
 
 const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
   <div className={`flex items-center gap-2 text-sm ${met ? 'text-green-600' : 'text-gray-400'}`}>
@@ -65,21 +66,12 @@ export default function RegisterPage() {
 
     try {
       // ثبت‌نام
-      const registerResponse = await fetch('http://127.0.0.1:8000/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          full_name: formData.full_name,
-          password: formData.password,
-          active: true
-        }),
+      await api.auth.register({
+        email: formData.email,
+        full_name: formData.full_name,
+        password: formData.password,
+        active: true
       })
-
-      if (!registerResponse.ok) {
-        const errorData = await registerResponse.json()
-        throw new Error(errorData.detail?.[0]?.msg || errorData.detail || 'خطا در ثبت نام')
-      }
 
       // لاگین خودکار
       const formBody = new URLSearchParams()
@@ -87,17 +79,7 @@ export default function RegisterPage() {
       formBody.append('password', formData.password)
       formBody.append('grant_type', 'password')
 
-      const loginResponse = await fetch('http://127.0.0.1:8000/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formBody.toString()
-      })
-
-      if (!loginResponse.ok) {
-        throw new Error('لاگین خودکار ناموفق')
-      }
-
-      const loginData = await loginResponse.json()
+      const loginData = await api.auth.login(formBody)
 
       // ذخیره داده‌ها
       localStorage.setItem('access_token', loginData.access_token)
@@ -106,23 +88,18 @@ export default function RegisterPage() {
       localStorage.setItem('user_name', formData.full_name)
 
       // ذخیره اطلاعات کاربر در localStorage
-      const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
-        headers: {
-          'Authorization': `Bearer ${loginData.access_token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (userInfoResponse.ok) {
-        const userInfo = await userInfoResponse.json()
+      try {
+        const userInfo = await api.auth.me(loginData.access_token)
         localStorage.setItem('user_id', userInfo.id)
+      } catch (err) {
+        console.error('Error fetching user info:', err)
       }
 
       console.log('ورود موفق')
       router.push('/dashboard')
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطایی رخ داد')
+    } catch (err: any) {
+      setError(err.detail?.[0]?.msg || err.detail || err.message || 'خطایی رخ داد')
     } finally {
       setIsLoading(false)
     }

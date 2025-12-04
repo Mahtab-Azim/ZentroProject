@@ -22,6 +22,7 @@ import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
 import { Plus, Trash2, X, AlertCircle, Send, Maximize2, Minimize2, MessageSquare, ChevronRight, CheckCircle2, Edit2 } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/custom-select'
+import { api } from '@/lib/api-client'
 
 interface Task {
   id: number
@@ -220,13 +221,8 @@ export default function MyTasksPage() {
 
   const fetchChats = async (token: string) => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/agents/chats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setChats(data)
-      }
+      const data = await api.agent.getChats(token)
+      setChats(data)
     } catch (err) {
       console.error('Error fetching chats:', err)
     }
@@ -238,19 +234,14 @@ export default function MyTasksPage() {
 
     try {
       setIsAgentLoading(true)
-      const res = await fetch(`http://127.0.0.1:8000/api/agents/chats/${threadId}/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        // Map history to chat format (adjust based on actual API response)
-        const history = data.map((msg: any) => ({
-          type: msg.role === 'user' ? 'user' : 'agent',
-          text: msg.content
-        }))
-        setChatMessages(history)
-        setCurrentChatId(threadId)
-      }
+      const data = await api.agent.getHistory(threadId, token)
+      // Map history to chat format (adjust based on actual API response)
+      const history = data.map((msg: any) => ({
+        type: (msg.role === 'user' ? 'user' : 'agent') as 'user' | 'agent',
+        text: msg.content
+      }))
+      setChatMessages(history)
+      setCurrentChatId(threadId)
     } catch (err) {
       console.error('Error fetching history:', err)
     } finally {
@@ -275,34 +266,22 @@ export default function MyTasksPage() {
     setIsAgentLoading(true)
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/agents/run', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          message: chatInput,
-          thread_id: currentChatId
-        })
-      })
+      const data = await api.agent.sendMessage({
+        message: chatInput,
+        thread_id: currentChatId
+      }, token)
 
-      if (res.ok) {
-        const data = await res.json()
-        const agentMsg = { type: 'agent' as const, text: data.response || 'پاسخی دریافت نشد.' } // Adjust based on API
-        setChatMessages(prev => [...prev, agentMsg])
+      const agentMsg = { type: 'agent' as const, text: data.response || 'پاسخی دریافت نشد.' } // Adjust based on API
+      setChatMessages(prev => [...prev, agentMsg])
 
-        // Refresh chats list if it was a new chat
-        if (!currentChatId) {
-          fetchChats(token)
-          if (data.thread_id) setCurrentChatId(data.thread_id)
-        }
-      } else {
-        setChatMessages(prev => [...prev, { type: 'agent', text: 'خطا در برقراری ارتباط با هوش مصنوعی.' }])
+      // Refresh chats list if it was a new chat
+      if (!currentChatId) {
+        fetchChats(token)
+        if (data.thread_id) setCurrentChatId(data.thread_id)
       }
     } catch (err) {
       console.error('Agent Error:', err)
-      setChatMessages(prev => [...prev, { type: 'agent', text: 'خطا در شبکه.' }])
+      setChatMessages(prev => [...prev, { type: 'agent', text: 'خطا در برقراری ارتباط با هوش مصنوعی.' }])
     } finally {
       setIsAgentLoading(false)
     }
@@ -313,43 +292,22 @@ export default function MyTasksPage() {
       setIsLoading(true)
       setError(null)
 
-      const projectsRes = await fetch('http://127.0.0.1:8000/api/projects', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!projectsRes.ok) throw new Error('خطا در دریافت پروژه‌ها')
-
-      const projectsList = (await projectsRes.json()) as Project[]
+      const projectsList = await api.projects.list(token)
       setProjects(projectsList)
 
       let allTasks: Task[] = []
 
       for (const project of projectsList) {
         try {
-          const tasksRes = await fetch(
-            `http://127.0.0.1:8000/api/projects/${project.id}/tasks`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          )
-
-          if (tasksRes.ok) {
-            const projectTasks = await tasksRes.json()
-            allTasks = [
-              ...allTasks,
-              ...projectTasks.map((t: any) => ({
-                ...t,
-                projectId: project.id,
-                projectName: project.name,
-              })),
-            ]
-          }
+          const projectTasks = await api.projects.getTasks(project.id, token)
+          allTasks = [
+            ...allTasks,
+            ...projectTasks.map((t: any) => ({
+              ...t,
+              projectId: project.id,
+              projectName: project.name,
+            })),
+          ]
         } catch (err) {
           console.error(`خطا در دریافت تسک‌های پروژه ${project.id}:`, err)
         }
@@ -357,7 +315,7 @@ export default function MyTasksPage() {
 
       setTasks(allTasks)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'خطایی رخ داد')
+      setError(err instanceof Error ? (err as any).message || 'خطایی رخ داد' : 'خطایی رخ داد')
     } finally {
       setIsLoading(false)
     }
@@ -370,16 +328,7 @@ export default function MyTasksPage() {
     try {
       if (editingTaskId) {
         // Update existing task
-        const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${editingTaskId}`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newTask),
-        })
-
-        if (!response.ok) throw new Error('خطا در ویرایش تسک')
+        await api.tasks.update(editingTaskId, newTask, token)
 
         // Update local state
         setTasks(prev => prev.map(t =>
@@ -389,16 +338,7 @@ export default function MyTasksPage() {
         ))
       } else {
         // Create new task
-        const response = await fetch('http://127.0.0.1:8000/api/projects/tasks', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(newTask),
-        })
-
-        if (!response.ok) throw new Error('خطا در ایجاد تسک')
+        await api.tasks.create(newTask, token)
         await fetchTasks(token)
       }
 
@@ -454,16 +394,7 @@ export default function MyTasksPage() {
     if (!token) return
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/projects/tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) throw new Error('خطا در حذف تسک')
-
+      await api.tasks.delete(taskId, token)
       setTasks(prev => prev.filter(t => t.id !== taskId))
     } catch (err) {
       setError('خطا در حذف تسک')
@@ -518,31 +449,7 @@ export default function MyTasksPage() {
 
       console.log('📤 Payload:', JSON.stringify(payload, null, 2))
 
-      const response = await fetch(
-        `http://127.0.0.1:8000/api/projects/tasks/${activeTask.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      )
-
-      if (response.status === 401) {
-        setError('نشست منقضی شده')
-        localStorage.removeItem('access_token')
-        setTimeout(() => window.location.href = '/auth/login', 2000)
-        return
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ خطای کامل:', JSON.stringify(errorData, null, 2))
-        setError(`خطا: ${errorData.detail?.[0]?.msg || JSON.stringify(errorData)}`)
-        return
-      }
+      await api.tasks.update(activeTask.id, payload, token)
 
       console.log('✅ موفق!')
 
@@ -559,8 +466,14 @@ export default function MyTasksPage() {
             : t
         )
       )
-    } catch (err) {
+    } catch (err: any) {
       console.error('خطا:', err)
+      if (err.status === 401) {
+        setError('نشست منقضی شده')
+        localStorage.removeItem('access_token')
+        setTimeout(() => window.location.href = '/auth/login', 2000)
+        return
+      }
       setError('خطا در ارتباط با سرور')
     }
   }

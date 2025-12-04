@@ -8,6 +8,7 @@ import { Input } from "../../../components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { api } from '@/lib/api-client'
 
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -40,20 +41,7 @@ export default function LoginPage() {
             formBody.append('password', formData.password)
             formBody.append('grant_type', 'password')
 
-            const response = await fetch('http://127.0.0.1:8000/api/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formBody.toString()
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.detail || 'ایمیل یا رمز عبور اشتباه است')
-            }
-
-            const data = await response.json()
+            const data = await api.auth.login(formBody)
 
             // استفاده از login از AuthContext
             login(data.access_token)
@@ -66,18 +54,13 @@ export default function LoginPage() {
             await new Promise(resolve => setTimeout(resolve, 100))
 
             // دریافت اطلاعات کاربر در AuthContext انجام می‌شود
-            const userInfoResponse = await fetch('http://127.0.0.1:8000/api/users/me', {
-                headers: {
-                    'Authorization': `Bearer ${data.access_token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-
-            if (userInfoResponse.ok) {
-                const userInfo = await userInfoResponse.json()
+            try {
+                const userInfo = await api.auth.me(data.access_token)
                 localStorage.setItem('user_id', userInfo.id)
                 localStorage.setItem('user_name', userInfo.full_name)
                 localStorage.setItem('user_email', userInfo.email)
+            } catch (err) {
+                console.error('Error fetching user info:', err)
             }
 
             console.log('✅ ورود موفق')
@@ -85,9 +68,9 @@ export default function LoginPage() {
             // Redirect به dashboard
             router.replace('/dashboard')
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('خطا در ورود:', err)
-            setError(err instanceof Error ? err.message : 'خطایی رخ داد')
+            setError(err.detail || err.message || 'خطایی رخ داد')
         } finally {
             setIsLoading(false)
         }

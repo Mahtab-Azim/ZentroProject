@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { Send, MessageSquare, Maximize2, Minimize2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { api } from '@/lib/api-client'
 
 interface ChatMessage {
   id: number
@@ -68,13 +69,8 @@ export default function AgentPage() {
 
   const fetchChats = async (token: string) => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/agents/chats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setChats(data)
-      }
+      const data = await api.agent.getChats(token)
+      setChats(data)
     } catch (err) {
       console.error('Error fetching chats:', err)
     }
@@ -87,22 +83,15 @@ export default function AgentPage() {
     try {
       setIsLoading(true)
       setError(null)
-      const res = await fetch(`http://127.0.0.1:8000/api/agents/chats/${threadId}/history`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const history = data.map((msg: any) => ({
-          id: msg.id,
-          type: msg.role === 'user' ? 'user' : 'agent',
-          text: msg.content,
-          timestamp: new Date(msg.created_at)
-        }))
-        setMessages(history)
-        setCurrentChatId(threadId)
-      } else {
-        setError('خطا در بارگذاری تاریخچه چت')
-      }
+      const data = await api.agent.getHistory(threadId, token)
+      const history = data.map((msg: any) => ({
+        id: msg.id,
+        type: (msg.role === 'user' ? 'user' : 'agent') as 'user' | 'agent',
+        text: msg.content,
+        timestamp: new Date(msg.created_at)
+      }))
+      setMessages(history)
+      setCurrentChatId(threadId)
     } catch (err) {
       console.error('Error fetching history:', err)
       setError('خطا در ارتباط با سرور')
@@ -153,76 +142,70 @@ export default function AgentPage() {
     try {
       // Prepare request body - only include thread_id if it exists
       const requestBody: any = {
-        prompt: userInput
+        message: userInput // Note: changed from 'prompt' to 'message' based on Tasks page usage, but let's check what the API expects. 
+        // In Tasks page it was 'message'. In Agent page it was 'prompt'.
+        // The api-client uses whatever data is passed.
+        // Let's stick to what was there or unify. 
+        // The original code in Agent page used 'prompt'.
+        // The original code in Tasks page used 'message'.
+        // This suggests inconsistency in the frontend or the backend accepts both?
+        // Let's check the original code again.
+        // Agent page: `prompt: userInput`
+        // Tasks page: `message: chatInput`
+        // I should probably keep it as `prompt` here if that's what was working for this page, OR change it if I know for sure.
+        // But wait, `api.agent.sendMessage` just passes the body.
+        // Let's assume the backend expects `prompt` here as per original code.
       }
+
+      // Wait, I should check the original code in Agent page.
+      // It was: `const requestBody: any = { prompt: userInput }`
+      // So I will keep it as `prompt`.
+
+      const payload: any = { prompt: userInput }
 
       if (currentChatId) {
-        requestBody.thread_id = currentChatId
+        payload.thread_id = currentChatId
       }
 
-      console.log('📤 Sending to agent API:', requestBody)
+      console.log('📤 Sending to agent API:', payload)
 
-      const res = await fetch('http://127.0.0.1:8000/api/agents/run', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      })
+      const data = await api.agent.sendMessage(payload, token)
 
-      console.log('📥 Response status:', res.status)
+      console.log('✅ Response data:', data)
 
-      if (res.ok) {
-        const data = await res.json()
-        console.log('✅ Response data:', data)
-
-        const agentMessage: ChatMessage = {
-          id: Date.now() + 1,
-          type: 'agent',
-          text: data.response || data.message || data.content || 'پاسخی دریافت نشد.',
-          timestamp: new Date(),
-        }
-        setMessages(prev => [...prev, agentMessage])
-
-        // Refresh chats list if it was a new chat
-        if (!currentChatId && data.thread_id) {
-          setCurrentChatId(data.thread_id)
-          fetchChats(token)
-        }
-      } else {
-        const errorData = await res.json()
-        console.error('❌ Error response:', errorData)
-        console.error('❌ Full error details:', JSON.stringify(errorData, null, 2))
-
-        // Extract validation errors if they exist
-        let errorMessage = 'خطا در برقراری ارتباط با هوش مصنوعی'
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            // Validation errors
-            errorMessage = errorData.detail.map((err: any) =>
-              `${err.loc?.join('.')} - ${err.msg}`
-            ).join(', ')
-          } else if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail
-          }
-        }
-
-        setError(errorMessage)
-        setMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          type: 'agent',
-          text: `خطا: ${errorMessage}`,
-          timestamp: new Date()
-        }])
+      const agentMessage: ChatMessage = {
+        id: Date.now() + 1,
+        type: 'agent',
+        text: data.response || data.message || data.content || 'پاسخی دریافت نشد.',
+        timestamp: new Date(),
       }
-    } catch (err) {
+      setMessages(prev => [...prev, agentMessage])
+
+      // Refresh chats list if it was a new chat
+      if (!currentChatId && data.thread_id) {
+        setCurrentChatId(data.thread_id)
+        fetchChats(token)
+      }
+    } catch (err: any) {
       console.error('🔥 Agent Error:', err)
-      setError('خطا در شبکه')
+      // Extract validation errors if they exist
+      let errorMessage = 'خطا در برقراری ارتباط با هوش مصنوعی'
+      if (err.detail) {
+        if (Array.isArray(err.detail)) {
+          // Validation errors
+          errorMessage = err.detail.map((e: any) =>
+            `${e.loc?.join('.')} - ${e.msg}`
+          ).join(', ')
+        } else if (typeof err.detail === 'string') {
+          errorMessage = err.detail
+        }
+      }
+
+      setError(errorMessage)
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         type: 'agent',
-        text: 'خطا در شبکه.',
+        text: `خطا: ${errorMessage}`,
         timestamp: new Date()
       }])
     } finally {

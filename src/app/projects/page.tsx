@@ -24,6 +24,7 @@ import { CustomSelect } from '@/components/ui/custom-select'
 import DatePicker from "react-multi-date-picker"
 import persian from "react-date-object/calendars/persian"
 import persian_fa from "react-date-object/locales/persian_fa"
+import { api } from '@/lib/api-client'
 
 // Types
 interface User {
@@ -86,26 +87,21 @@ export default function ProjectsPage() {
         try {
             setIsLoading(true)
             const token = localStorage.getItem('access_token')
-            const res = await fetch('http://127.0.0.1:8000/api/projects', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (res.ok) {
-                const data = await res.json()
-                // Ensure sprints array exists
-                const projectsWithSprints = await Promise.all(data.map(async (p: any) => {
-                    // Fetch sprints for each project to show active sprint in card
-                    try {
-                        const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${p.id}/sprints`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        })
-                        const sprints = sprintsRes.ok ? await sprintsRes.json() : []
-                        return { ...p, sprints, members: p.members || [] }
-                    } catch (e) {
-                        return { ...p, sprints: [], members: p.members || [] }
-                    }
-                }))
-                setProjects(projectsWithSprints)
-            }
+            if (!token) return
+
+            const data = await api.projects.list(token)
+
+            // Ensure sprints array exists
+            const projectsWithSprints = await Promise.all(data.map(async (p: any) => {
+                // Fetch sprints for each project to show active sprint in card
+                try {
+                    const sprints = await api.projects.getSprints(p.id, token)
+                    return { ...p, sprints, members: p.members || [] }
+                } catch (e) {
+                    return { ...p, sprints: [], members: p.members || [] }
+                }
+            }))
+            setProjects(projectsWithSprints)
         } catch (error) {
             console.error('Error fetching projects:', error)
         } finally {
@@ -116,18 +112,10 @@ export default function ProjectsPage() {
     const fetchUsers = async () => {
         try {
             const token = localStorage.getItem('access_token')
-            // Assuming this endpoint exists based on standard patterns, or we might need to rely on search
-            // Since user didn't give GET /api/users, we'll try it. If fails, we might need another way.
-            const res = await fetch('http://127.0.0.1:8000/api/users', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (res.ok) {
-                const data = await res.json()
-                setUsers(data)
-            } else {
-                // Fallback mock if API is missing for users list (to prevent UI breaking)
-                console.warn('Could not fetch users list')
-            }
+            if (!token) return
+
+            const data = await api.users.list(token)
+            setUsers(data)
         } catch (error) {
             console.error('Error fetching users:', error)
         }
@@ -142,24 +130,18 @@ export default function ProjectsPage() {
     const handleCreateProject = async () => {
         if (!newProjectName) return
         const token = localStorage.getItem('access_token')
+        if (!token) return
+
         try {
-            const res = await fetch('http://127.0.0.1:8000/api/projects', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: newProjectName,
-                    description: newProjectDesc
-                })
-            })
-            if (res.ok) {
-                setIsCreateModalOpen(false)
-                setNewProjectName('')
-                setNewProjectDesc('')
-                fetchProjects()
-            }
+            await api.projects.create({
+                name: newProjectName,
+                description: newProjectDesc
+            }, token)
+
+            setIsCreateModalOpen(false)
+            setNewProjectName('')
+            setNewProjectDesc('')
+            fetchProjects()
         } catch (error) {
             console.error('Error creating project:', error)
         }
@@ -168,28 +150,25 @@ export default function ProjectsPage() {
     const handleAddMember = async () => {
         if (!selectedProject || !newMemberId) return
         const token = localStorage.getItem('access_token')
+        if (!token) return
+
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/users/${newMemberId}?role=${newMemberRole}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (res.ok) {
-                // Refresh project details
-                // Ideally we fetch just this project, but for now re-fetch all or update local state
-                alert('کاربر با موفقیت اضافه شد')
-                setNewMemberId('')
-                fetchProjects() // Simple refresh
-            } else {
-                alert('خطا در افزودن کاربر')
-            }
+            await api.projects.addMember(selectedProject.id, newMemberId, newMemberRole, token)
+
+            alert('کاربر با موفقیت اضافه شد')
+            setNewMemberId('')
+            fetchProjects() // Simple refresh
         } catch (error) {
             console.error('Error adding member:', error)
+            alert('خطا در افزودن کاربر')
         }
     }
 
     const handleCreateSprint = async () => {
         if (!selectedProject || !newSprintName) return
         const token = localStorage.getItem('access_token')
+        if (!token) return
+
         try {
             const payload = {
                 project_id: selectedProject.id,
@@ -200,33 +179,19 @@ export default function ProjectsPage() {
                 is_active: false
             }
 
-            const res = await fetch('http://127.0.0.1:8000/api/projects/sprints', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
+            await api.projects.createSprint(payload, token)
 
-            if (res.ok) {
-                alert('اسپرینت ساخته شد')
-                setNewSprintName('')
-                setNewSprintDesc('')
-                setNewSprintStart(null)
-                setNewSprintEnd(null)
+            alert('اسپرینت ساخته شد')
+            setNewSprintName('')
+            setNewSprintDesc('')
+            setNewSprintStart(null)
+            setNewSprintEnd(null)
 
-                // Refresh sprints for selected project
-                const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-                if (sprintsRes.ok) {
-                    const sprints = await sprintsRes.json()
-                    setSelectedProject({ ...selectedProject, sprints })
-                    // Also update main list
-                    setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
-                }
-            }
+            // Refresh sprints for selected project
+            const sprints = await api.projects.getSprints(selectedProject.id, token)
+            setSelectedProject({ ...selectedProject, sprints })
+            // Also update main list
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
         } catch (error) {
             console.error('Error creating sprint:', error)
         }
@@ -235,23 +200,16 @@ export default function ProjectsPage() {
     const handleActivateSprint = async (sprintId: number) => {
         if (!selectedProject) return
         const token = localStorage.getItem('access_token')
+        if (!token) return
+
         try {
-            const res = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints/${sprintId}/activate`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
-            if (res.ok) {
-                alert('اسپرینت فعال شد')
-                // Refresh sprints
-                const sprintsRes = await fetch(`http://127.0.0.1:8000/api/projects/${selectedProject.id}/sprints`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                })
-                if (sprintsRes.ok) {
-                    const sprints = await sprintsRes.json()
-                    setSelectedProject({ ...selectedProject, sprints })
-                    setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
-                }
-            }
+            await api.projects.activateSprint(selectedProject.id, sprintId, token)
+
+            alert('اسپرینت فعال شد')
+            // Refresh sprints
+            const sprints = await api.projects.getSprints(selectedProject.id, token)
+            setSelectedProject({ ...selectedProject, sprints })
+            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, sprints } : p))
         } catch (error) {
             console.error('Error activating sprint:', error)
         }
