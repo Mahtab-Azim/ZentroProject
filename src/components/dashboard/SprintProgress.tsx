@@ -42,7 +42,7 @@ export default function SprintProgress({ sprint }: SprintProgressProps) {
           <span>-</span>
           <span>{sprint.endDate}</span>
         </div>
-        
+
         <div className="space-y-2 mb-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">پیشرفت</span>

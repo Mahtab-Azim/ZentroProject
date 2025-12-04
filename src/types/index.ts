@@ -56,3 +56,17 @@ export interface TeamMember {
   tasksCount: number;
   avatar?: string;
 }
+export interface ProjectMember {
+  userId: number;
+  user: User;
+  role: 'admin' | 'member' | 'viewer';
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  description: string;
+  members: ProjectMember[];
+  sprints: Sprint[];
+  updatedAt: string;
+}
