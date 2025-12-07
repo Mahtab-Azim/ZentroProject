@@ -178,7 +178,7 @@ export default function DashboardPage() {
         <div className="rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 shadow-xl">
           <div className="relative z-10">
             <div className="max-w-2xl">
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3">سلام {user.name}! 👋</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">سلام {user.name}!</h2>
               <p className="text-blue-100 mb-6 sm:mb-8 text-base sm:text-lg">به داشبورد خود خوش آمدید. امروز چه کاری می‌خواهید انجام دهید؟</p>
               <div className="flex flex-wrap gap-3 sm:gap-4">
                 <Button

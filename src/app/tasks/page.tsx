@@ -174,7 +174,7 @@ export default function MyTasksPage() {
   const [chatInput, setChatInput] = useState('')
   const [selectedDate, setSelectedDate] = useState<any>(null)
   const [user, setUser] = useState<{ name: string; email: string } | null>(null)
-  const [chats, setChats] = useState<{ id: string; title: string }[]>([])
+  const [chats, setChats] = useState<{ thread_id: string; title: string }[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isAgentLoading, setIsAgentLoading] = useState(false)
@@ -230,7 +230,7 @@ export default function MyTasksPage() {
 
   const fetchChatHistory = async (threadId: string) => {
     const token = localStorage.getItem('access_token')
-    if (!token) return
+    if (!token) return 
 
     try {
       setIsAgentLoading(true)
@@ -267,11 +267,11 @@ export default function MyTasksPage() {
 
     try {
       const data = await api.agent.sendMessage({
-        message: chatInput,
+        prompt: chatInput,
         thread_id: currentChatId
       }, token)
 
-      const agentMsg = { type: 'agent' as const, text: data.response || 'پاسخی دریافت نشد.' } // Adjust based on API
+      const agentMsg = { type: 'agent' as const, text: data.message || 'پاسخی دریافت نشد.' } // Adjust based on API
       setChatMessages(prev => [...prev, agentMsg])
 
       // Refresh chats list if it was a new chat
@@ -846,9 +846,9 @@ export default function MyTasksPage() {
                 ) : (
                   chats.map(chat => (
                     <button
-                      key={chat.id}
-                      onClick={() => fetchChatHistory(chat.id)}
-                      className={`w-full text-right px-4 py-3 rounded-xl transition-colors flex items-center gap-2 text-sm ${currentChatId === chat.id
+                      key={chat.thread_id}
+                      onClick={() => fetchChatHistory(chat.thread_id)}
+                      className={`w-full text-right px-4 py-3 rounded-xl transition-colors flex items-center gap-2 text-sm ${currentChatId === chat.thread_id
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'hover:bg-muted text-muted-foreground'
                         }`}
