@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageTransition from "@/components/PageTransition";
 import "./globals.css";
@@ -65,6 +66,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <PageTransition>{children}</PageTransition>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

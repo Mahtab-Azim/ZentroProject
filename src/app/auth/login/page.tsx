@@ -2,14 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { AuthBackground } from "@/components/auth/AuthBackground"
 import { api } from '@/lib/api-client'
-
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function LoginPage() {
@@ -35,25 +35,17 @@ export default function LoginPage() {
         setError("")
 
         try {
-            // ساخت FormData برای OAuth2 password flow
             const formBody = new URLSearchParams()
-            formBody.append('username', formData.email) // OAuth2 می‌خواد username باشه (ولی ایمیل رو میفرستیم)
+            formBody.append('username', formData.email)
             formBody.append('password', formData.password)
             formBody.append('grant_type', 'password')
 
             const data = await api.auth.login(formBody)
-
-            // استفاده از login از AuthContext
             login(data.access_token)
             localStorage.setItem('refresh_token', data.refresh_token)
-
-            // اطمینان از به‌روزرسانی همه کامپوننت‌ها
             window.dispatchEvent(new Event('userLogin'))
-
-            // کمی صبر می‌کنیم تا state ها به‌روز شوند
             await new Promise(resolve => setTimeout(resolve, 100))
 
-            // دریافت اطلاعات کاربر در AuthContext انجام می‌شود
             try {
                 const userInfo = await api.auth.me(data.access_token)
                 localStorage.setItem('user_id', userInfo.id)
@@ -63,9 +55,6 @@ export default function LoginPage() {
                 console.error('Error fetching user info:', err)
             }
 
-            console.log('✅ ورود موفق')
-
-            // Redirect به dashboard
             router.replace('/dashboard')
 
         } catch (err: any) {
@@ -80,49 +69,50 @@ export default function LoginPage() {
     const isPasswordValid = formData.password.length >= 6
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[var(--auth-bg-start)] via-[var(--auth-bg-mid)] to-[var(--auth-bg-end)] flex items-center justify-center p-4 pt-20">
-            <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-sm border-border">
-                <CardHeader className="text-center pb-6">
-                    <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4" style={{ background: 'oklch(0.6 0.2 240)' }}>
-                        <Mail className="w-8 h-8 text-white" />
-                    </div>
-                    <CardTitle className="text-2xl font-bold text-transparent bg-clip-text" style={{ backgroundImage: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))` }}>
+        <div className="min-h-screen relative z-0 flex items-center justify-center p-4 pt-20 overflow-hidden">
+            <AuthBackground />
+
+            {/* Translucent Card - Radix UI Style */}
+            <Card className="w-full max-w-md border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] rounded-3xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-3xl backdrop-saturate-150 transition-all duration-500">
+                <CardHeader className="text-center pb-2 pt-8">
+                    <CardTitle className="text-2xl font-semibold text-gray-900 dark:text-white">
                         ورود به زنترو
                     </CardTitle>
-                    <CardDescription className="text-muted-foreground">
-                        به حساب کاربری خود وارد شوید
-                    </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="px-8 pb-8">
                     <form onSubmit={handleLogin} className="space-y-4">
                         {/* Email */}
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                        <div className="space-y-4">
+                            <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 آدرس ایمیل
                             </Label>
-                            <div className="relative">
-                                <Mail className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    placeholder="example@email.com"
-                                    value={formData.email}
-                                    onChange={handleInputChange}
-                                    required
-                                    className="pr-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent"
-                                />
-                            </div>
+                            <Input
+                                id="email"
+                                name="email"
+                                type="email"
+                                placeholder="example@email.com"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                required
+                                className="h-10 rounded-xl border-gray-300 dark:border-gray-700 bg-white/70 dark:bg-gray-900/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
+                            />
                         </div>
 
                         {/* Password */}
                         <div className="space-y-2">
-                            <Label htmlFor="password" className="text-sm font-medium text-foreground">
-                                رمز عبور
-                            </Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    رمز عبور
+                                </Label>
+                                <Link
+                                    href="/auth/forgotpassword"
+                                    className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                >
+                                    رمز عبور خود را فراموش کردید؟
+                                </Link>
+                            </div>
                             <div className="relative">
-                                <Lock className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <Input
                                     id="password"
                                     name="password"
@@ -132,74 +122,52 @@ export default function LoginPage() {
                                     value={formData.password}
                                     onChange={handleInputChange}
                                     required
-                                    className="pr-10 pl-10 border-input focus:border-primary focus:ring-primary text-foreground placeholder:text-muted-foreground bg-transparent text-right"
+                                    className="h-10 rounded-xl border-gray-300 dark:border-gray-700 bg-white/70 dark:bg-gray-900/50 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all pl-10 text-right text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-500"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
                                 >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Forgot Password */}
-                        <div className="text-right">
-                            <Link
-                                href="/auth/forgot-password"
-                                className="text-sm font-medium hover:underline transition-colors"
-                                style={{
-                                    color: 'oklch(0.6 0.2 240)'
-                                }}
-                            >
-                                رمز عبور خود را فراموش کردید؟
-                            </Link>
-                        </div>
-
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                                <p className="text-sm text-red-600">{error}</p>
+                            <div className="bg-red-50/80 dark:bg-red-900/20 backdrop-blur-sm border border-red-200 dark:border-red-800/50 rounded-xl p-3">
+                                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                             </div>
                         )}
 
-                        {/* Submit Button */}
-                        <Button
-                            type="submit"
-                            size="xl"
-                            disabled={!isValidEmail || !isPasswordValid || isLoading}
-                            className="w-full text-white shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 hover:opacity-90 cursor-pointer"
-                            style={{
-                                background: `linear-gradient(to right, oklch(0.6 0.2 240), oklch(0.55 0.22 240))`
-                            }}
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    در حال ورود...
-                                </div>
-                            ) : (
-                                'ورود'
-                            )}
-                        </Button>
-                    </form>
-
-                    {/* Register Link */}
-                    <div className="text-center pt-4 border-t border-gray-100">
-                        <p className="text-sm text-muted-foreground">
-                            حساب کاربری ندارید؟{' '}
-                            <Link
-                                href="/auth/register"
-                                className="font-medium hover:underline transition-colors"
-                                style={{
-                                    color: 'oklch(0.6 0.2 240)'
-                                }}
-                            >
-                                ثبت نام کنید
+                        {/* Buttons */}
+                        <div className="flex items-center gap-3 pt-2">
+                            <Link href="/auth/register" className="flex-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full h-10 rounded-full border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-900/30 hover:bg-white/80 dark:hover:bg-gray-900/50 backdrop-blur-sm font-medium transition-all text-gray-900 dark:text-white"
+                                >
+                                    ثبت‌نام کنید
+                                </Button>
                             </Link>
-                        </p>
-                    </div>
+                            <Button
+                                type="submit"
+                                disabled={!isValidEmail || !isPasswordValid || isLoading}
+                                className="flex-1 h-10 rounded-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium shadow-lg shadow-blue-500/30 dark:shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        در حال ورود...
+                                    </div>
+                                ) : (
+                                    'ورود'
+                                )}
+                            </Button>
+                        </div>
+                    </form>
                 </CardContent>
             </Card>
         </div>

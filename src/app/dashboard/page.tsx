@@ -173,47 +173,58 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout user={user}>
-      <div className="space-y-4 sm:space-y-6 px-3 sm:px-0">
+      <div className="space-y-6 sm:space-y-8 px-4 sm:px-0 max-w-7xl mx-auto">
         {/* Welcome Card - ریسپانسیو */}
-        <div className="rounded-xl p-4 sm:p-6 text-white relative overflow-hidden bg-gradient-to-l from-[oklch(0.6_0.2_240)] to-[oklch(0.5_0.2_240)] dark:from-[oklch(0.55_0.18_255)] dark:to-[oklch(0.45_0.18_255)]">
+        <div className="rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-800 shadow-xl">
           <div className="relative z-10">
-            <div className="max-w-xl">
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">سلام {user.name}!</h2>
-              <p className="text-blue-100 mb-4 sm:mb-6 text-sm sm:text-base">به داشبورد خود خوش آمدید</p>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
+            <div className="max-w-2xl">
+              <h2 className="text-2xl sm:text-3xl font-bold mb-3">سلام {user.name}! 👋</h2>
+              <p className="text-blue-100 mb-6 sm:mb-8 text-base sm:text-lg">به داشبورد خود خوش آمدید. امروز چه کاری می‌خواهید انجام دهید؟</p>
+              <div className="flex flex-wrap gap-3 sm:gap-4">
                 <Button
-                  variant="outline"
-                  className="h-9 sm:h-10 bg-white/20 hover:bg-white/30 text-white border-white/20 cursor-pointer text-sm"
+                  variant="secondary"
+                  className="h-10 sm:h-11 px-6 bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-sm"
                   onClick={() => router.push('/tasks')}
                 >
                   مشاهده تسک‌ها
                 </Button>
+                <Button
+                  variant="outline"
+                  className="h-10 sm:h-11 px-6 bg-blue-700/30 text-white border-white/20 hover:bg-blue-700/50 backdrop-blur-sm font-medium"
+                  onClick={() => router.push('/projects')}
+                >
+                  مدیریت پروژه‌ها
+                </Button>
               </div>
             </div>
           </div>
-          <div className="absolute left-0 top-0 w-32 sm:w-48 h-32 sm:h-48 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute right-0 bottom-0 w-24 sm:w-32 h-24 sm:h-32 bg-white/10 rounded-full translate-x-1/3 translate-y-1/3" />
+          <div className="absolute left-0 top-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
+          <div className="absolute right-0 bottom-0 w-48 h-48 bg-indigo-500/30 rounded-full translate-x-1/3 translate-y-1/3 blur-2xl" />
         </div>
 
         {/* Stats Grid - ریسپانسیو */}
-        <div className="mb-4 sm:mb-6">
+        <div className="mb-6 sm:mb-8">
           <StatsGrid stats={stats} />
         </div>
 
         {/* Charts Section - ریسپانسیو */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 sm:gap-8">
+          <div className="xl:col-span-2 bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
             <WeeklyChart data={weeklyData} />
           </div>
-          <div className="w-full">
+          <div className="w-full bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
             <SprintProgress sprint={sprint} />
           </div>
         </div>
 
         {/* Tasks and Activity Section - ریسپانسیو */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <TaskList tasks={tasks} />
-          <ActivityFeed activities={activities} />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <TaskList tasks={tasks} />
+          </div>
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <ActivityFeed activities={activities} />
+          </div>
         </div>
       </div>
     </DashboardLayout>
