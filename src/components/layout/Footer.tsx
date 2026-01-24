@@ -4,15 +4,19 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const Footer = () => {
+interface FooterProps {
+  forceVisible?: boolean;
+}
+
+const Footer = ({ forceVisible = false }: FooterProps) => {
   const currentYear = new Date().getFullYear();
 
   const pathname = usePathname();
 
-  if (pathname?.startsWith('/agent') || pathname?.startsWith('/auth')) return null;
+  if (!forceVisible && (pathname === '/' || pathname?.startsWith('/features') || pathname?.startsWith('/settings') || pathname?.startsWith('/agent') || pathname?.startsWith('/auth') || pathname?.startsWith('/tasks') || pathname?.startsWith('/projects'))) return null;
 
   return (
-    <footer className="from-blue-50 via-blue-100/60 to-indigo-100/60 dark:bg-gray-900 border-t border-blue-200/50 dark:border-border mt-auto">
+    <footer className=" bg-slate-200 dark:bg-gray-900 border-t border-slate-400 dark:border-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
@@ -44,7 +48,6 @@ const Footer = () => {
           <p>© {currentYear} تمامی حقوق برای Zentro CRM محفوظ است.</p>
           <div className="flex items-center gap-4 opacity-70">
             {/* Social Icons placeholders or similar can go here */}
-            <span>طراحی شده با ❤️</span>
           </div>
         </div>
       </div>

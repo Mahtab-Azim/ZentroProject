@@ -12,12 +12,12 @@ import ThemeToggle from '../ui/ThemeToggle';
 const publicLinks = [
   { href: '/', label: 'خانه' },
   { href: '/features', label: 'ویژگی‌ها' },
-  { href: '/contact', label: 'ارتباطات' },
 ]
 
 const authLinks = [
   { href: '/dashboard', label: 'داشبورد' },
   { href: '/tasks', label: 'تسک‌های من' },
+  { href: '/projects', label: 'پروژه‌ها' },
 ]
 
 interface User {
@@ -94,7 +94,7 @@ export default function Navbar() {
         {/* Left side - Logo */}
         <Link
           href="/"
-          className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent hover:from-primary/90 hover:to-primary/60 transition-all duration-200"
+          className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent hover:from-primary/90 hover:to-primary/60 transition-[background-image,transform] duration-200"
         >
           زنترو
         </Link>
@@ -120,7 +120,7 @@ export default function Navbar() {
                 </Link>
               </li>
               {/* خط عمودی بین لینک‌های public و auth */}
-              {index === 2 && user && (
+              {index === 1 && user && (
                 <div className="w-px h-6 bg-border" />
               )}
             </div>
@@ -166,14 +166,14 @@ export default function Navbar() {
           <div className="relative w-6 h-6">
             <Menu
               className={cn(
-                'absolute inset-0 transition-all duration-300',
+                'absolute inset-0 transition-[transform,opacity] duration-300',
                 isMenuOpen ? 'rotate-90 opacity-0' : 'rotate-0 opacity-100'
               )}
               size={24}
             />
             <X
               className={cn(
-                'absolute inset-0 transition-all duration-300',
+                'absolute inset-0 transition-[transform,opacity] duration-300',
                 isMenuOpen ? 'rotate-0 opacity-100' : 'rotate-90 opacity-0'
               )}
               size={24}
@@ -185,7 +185,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       <div
         className={cn(
-          'md:hidden overflow-hidden transition-all duration-300 ease-out bg-background/90 backdrop-blur-lg border-t border-border',
+          'md:hidden overflow-hidden transition-[height,opacity] duration-300 ease-out bg-background/90 backdrop-blur-lg border-t border-border',
           isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         )}
       >
@@ -194,7 +194,7 @@ export default function Navbar() {
             <li
               key={href}
               className={cn(
-                'transform transition-all duration-300 ease-out',
+                'transform transition-[transform,opacity] duration-300 ease-out',
                 isMenuOpen
                   ? 'translate-y-0 opacity-100'
                   : 'translate-y-4 opacity-0'
@@ -206,7 +206,7 @@ export default function Navbar() {
               <Link
                 href={href}
                 className={cn(
-                  'block py-2 px-3 rounded-lg transition-all duration-200 font-medium text-sm',
+                  'block py-2 px-3 rounded-lg transition-colors duration-200 font-medium text-sm',
                   pathname === href
                     ? 'text-primary bg-primary/10'
                     : 'text-foreground hover:text-primary hover:bg-primary/5'
@@ -225,7 +225,7 @@ export default function Navbar() {
                 size="sm"
                 asChild
                 className={cn(
-                  'flex-1 transform transition-all duration-300 ease-out cursor-pointer',
+                  'flex-1 transform transition-[transform,opacity] duration-300 ease-out cursor-pointer',
                   isMenuOpen
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-4 opacity-0'
@@ -242,7 +242,7 @@ export default function Navbar() {
                 size="sm"
                 asChild
                 className={cn(
-                  'flex-1 bg-primary hover:bg-primary/90 transform transition-all duration-300 ease-out cursor-pointer',
+                  'flex-1 bg-primary hover:bg-primary/90 transform transition-[transform,opacity,background-color] duration-300 ease-out cursor-pointer',
                   isMenuOpen
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-4 opacity-0'

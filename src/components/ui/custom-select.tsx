@@ -51,7 +51,7 @@ export function CustomSelect({
             <button
                 type="button"
                 onClick={() => !disabled && setIsOpen(!isOpen)}
-                className={`w-full px-4 py-3 flex items-center justify-between border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                className={`w-full px-4 py-3 flex items-center justify-between border border-border bg-background text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/60 transition-[box-shadow,border-color] ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     }`}
             >
                 <span className={selectedOption ? 'text-foreground' : 'text-muted-foreground'}>
