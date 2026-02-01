@@ -3,6 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Sprint } from '@/types';
+import Link from 'next/link';
 
 interface SprintProgressProps {
   sprint: Sprint | null;
@@ -31,9 +32,11 @@ export default function SprintProgress({ sprint }: SprintProgressProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>اسپرینت فعال</CardTitle>
-        <Button variant="ghost" size="sm">
-          جزئیات
-        </Button>
+        <Link href="/sprints">
+          <Button variant="ghost" size="sm">
+            جزئیات
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent>
         <h4 className="font-medium mb-2">{sprint.name}</h4>

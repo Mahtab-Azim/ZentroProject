@@ -32,17 +32,17 @@ export default function UserNav({ user, onLogout }: UserNavProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="group flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-background hover:bg-accent transition-all duration-200 border border-border hover:border-border/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 cursor-pointer">
+        <button className="group flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-full bg-background hover:bg-accent transition-[background-color,border-color,box-shadow] duration-200 border border-border hover:border-border/80 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2 cursor-pointer">
           {/* Initials Box */}
-          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white font-medium text-xs sm:text-sm shadow-sm group-hover:shadow-md transition-all duration-200">
+          <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white font-medium text-xs sm:text-sm shadow-sm group-hover:shadow-md transition-[box-shadow] duration-200">
             {initials}
           </div>
-          
+
           {/* Name (visible on desktop) */}
           <span className="hidden sm:inline text-sm font-medium text-foreground/90">
             {user.name}
           </span>
-          
+
           {/* Chevron */}
           <ChevronDown size={14} className="text-muted-foreground hidden sm:inline transition-transform duration-200 group-hover:translate-y-0.5" />
         </button>

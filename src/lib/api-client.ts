@@ -29,11 +29,18 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const errorText = await response.text().catch(() => '');
+        let errorData = {};
+        try {
+            errorData = JSON.parse(errorText);
+        } catch (e) {
+            errorData = { message: errorText || 'Unknown error' };
+        }
         throw { status: response.status, ...errorData };
     }
 
-    return response.json();
+    const text = await response.text();
+    return text ? JSON.parse(text) : {} as T;
 }
 
 export const api = {
@@ -45,6 +52,10 @@ export const api = {
         }),
         register: (data: any) => request<any>('/users/register', { method: 'POST', body: data }),
         me: (token: string) => request<any>('/users/me', { token }),
+        update: (userId: string | number | null | undefined, data: any, token: string) => {
+            const target = (userId && userId !== 'undefined' && userId !== 'null') ? userId : 'me';
+            return request<any>(`/users/${target}`, { method: 'PATCH', body: data, token });
+        },
     },
     projects: {
         list: (token: string) => request<any[]>('/projects', { token }),
@@ -53,9 +64,12 @@ export const api = {
         getSprints: (projectId: number | string, token: string) => request<any[]>(`/projects/${projectId}/sprints`, { token }),
         addMember: (projectId: number | string, userId: string, role: string, token: string) =>
             request<any>(`/projects/${projectId}/users/${userId}?role=${role}`, { method: 'POST', token }),
-        createSprint: (data: any, token: string) => request<any>('/projects/sprints', { method: 'POST', body: data, token }),
+        createSprint: (data: any, token: string) =>
+            request<any>(`/projects/sprints`, { method: 'POST', body: data, token }),
         activateSprint: (projectId: number | string, sprintId: number | string, token: string) =>
             request<any>(`/projects/${projectId}/sprints/${sprintId}/activate`, { method: 'POST', token }),
+        delete: (projectId: number | string, token: string) =>
+            request<any>(`/projects/epics/${projectId}`, { method: 'DELETE', token }),
     },
     tasks: {
         create: (data: any, token: string) => request<any>('/projects/tasks', { method: 'POST', body: data, token }),
@@ -69,5 +83,6 @@ export const api = {
         getChats: (token: string) => request<any[]>('/agents/chats', { token }),
         getHistory: (threadId: string, token: string) => request<any[]>(`/agents/chats/${threadId}/history`, { token }),
         sendMessage: (data: any, token: string) => request<any>('/agents/run', { method: 'POST', body: data, token }),
+        deleteChat: (chatId: number | string, token: string) => request<any>(`/agents/chats/${chatId}`, { method: 'DELETE', token }),
     }
 };

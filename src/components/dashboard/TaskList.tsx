@@ -12,7 +12,7 @@ interface TaskListProps {
 
 export default function TaskList({ tasks }: TaskListProps) {
   const getPriorityVariant = (priority: string) => {
-    switch(priority) {
+    switch (priority) {
       case 'high': return 'destructive';
       case 'medium': return 'default';
       case 'low': return 'secondary';
@@ -21,7 +21,7 @@ export default function TaskList({ tasks }: TaskListProps) {
   };
 
   const getPriorityLabel = (priority: string) => {
-    switch(priority) {
+    switch (priority) {
       case 'high': return 'بالا';
       case 'medium': return 'متوسط';
       case 'low': return 'پایین';
@@ -70,9 +70,9 @@ export default function TaskList({ tasks }: TaskListProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {tasks.map((task) => (
-          <div 
-            key={task.id} 
-            className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
+          <div
+            key={task.id}
+            className="p-4 border rounded-lg hover:shadow-md transition-[box-shadow,border-color] cursor-pointer"
           >
             <div className="flex items-start justify-between mb-3">
               <h4 className="font-medium text-sm flex-1">

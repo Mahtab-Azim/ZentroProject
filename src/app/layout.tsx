@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageTransition from "@/components/PageTransition";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Zentro CRM | مدیریت ارتباط با مشتریان",
+  title: "Zentro | Agentic Task Manager",
   description:
     "Zentro CRM یک سیستم مدرن برای مدیریت ارتباط با مشتریان، سازمان‌دهی فروش و بهبود تجربه کاربری تیم شماست.",
   keywords: [
@@ -17,11 +18,11 @@ export const metadata: Metadata = {
     "Next.js",
   ],
   openGraph: {
-    title: "Zentro CRM | سیستم مدیریت ارتباط با مشتریان",
+    title: "Zentro | An Agentic Task Manager",
     description:
-      "با Zentro CRM، تعاملات با مشتریان خود را آسان‌تر، سریع‌تر و هوشمندانه‌تر مدیریت کنید.",
+      "با Zentro ، تسک های خود را آسان‌تر، سریع‌تر و هوشمندانه‌تر مدیریت کنید.",
     url: "https://zentro.app",
-    siteName: "Zentro CRM",
+    siteName: "Zentro",
     images: [
       {
         url: "/og-image.jpg",
@@ -65,6 +66,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <PageTransition>{children}</PageTransition>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

@@ -45,14 +45,14 @@ export default function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="relative rounded-full hover:bg-accent/70 transition-all duration-300 overflow-hidden"
+      className="relative rounded-full hover:bg-accent/70 transition-colors duration-300 overflow-hidden"
     >
       <Sun
-        className={`h-5 w-5 text-yellow-500 absolute inset-0 m-auto transition-all duration-500 ease-in-out pointer-events-none ${isDark ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'
+        className={`h-5 w-5 text-yellow-500 absolute inset-0 m-auto transition-[transform,opacity] duration-500 ease-in-out pointer-events-none ${isDark ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'
           }`}
       />
       <Moon
-        className={`h-5 w-5 text-blue-400 absolute inset-0 m-auto transition-all duration-500 ease-in-out pointer-events-none ${isDark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'
+        className={`h-5 w-5 text-blue-400 absolute inset-0 m-auto transition-[transform,opacity] duration-500 ease-in-out pointer-events-none ${isDark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'
           }`}
       />
       <span className="sr-only">تغییر تم</span>
