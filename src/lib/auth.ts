@@ -1,6 +1,7 @@
 import NextAuth, { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 // import { providers } from "./auth/provider";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -15,7 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (!credentials?.email || !credentials?.password) return null;
                 const { email, password } = credentials;
 
-                const loginResponse = await fetch("http://localhost:8000/api/token", {
+                const loginResponse = await fetch(`${BASE_URL}/token`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ username: email, password }),
@@ -23,10 +24,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (!loginResponse.ok) throw new Error("احراز هویت ناموفق بود");
 
-                const loginData = await loginResponse.json(); 
+                const loginData = await loginResponse.json();
                 const token = loginData.access_token;
 
-                const userResponse = await fetch("http://localhost:8000/api/users/me", {
+                const userResponse = await fetch(`${BASE_URL}/users/me`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
