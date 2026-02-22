@@ -1,7 +1,7 @@
 import NextAuth, { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 // import { providers } from "./auth/provider";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
