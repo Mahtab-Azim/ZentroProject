@@ -1,4 +1,7 @@
-const BASE_URL = 'http://127.0.0.1:8000/api';
+import { MOCK_DATA, mockResponse } from './mock-data';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' || process.env.NEXT_PUBLIC_USE_MOCK_API === '1';
 
 type RequestOptions = {
     method?: string;
@@ -9,6 +12,52 @@ type RequestOptions = {
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { method = 'GET', headers = {}, body, token } = options;
+
+    if (USE_MOCK_API) {
+        console.log(`[MOCK API] ${method} ${endpoint}`);
+
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // Mock Route Matching
+        if (endpoint === '/token' || endpoint === '/users/register') {
+            return MOCK_DATA.auth as any;
+        }
+        if (endpoint === '/users/me' || endpoint.startsWith('/users/')) {
+            return MOCK_DATA.user as any;
+        }
+        if (endpoint === '/projects' && method === 'GET') {
+            return MOCK_DATA.projects as any;
+        }
+        if (endpoint === '/projects' && method === 'POST') {
+            return { id: Math.floor(Math.random() * 1000), ...body, status: 'active' } as any;
+        }
+        if (endpoint.match(/^\/projects\/\d+\/tasks$/)) {
+            const projectId = endpoint.split('/')[2];
+            return (MOCK_DATA.tasks as any)[projectId] || [] as any;
+        }
+        if (endpoint === '/projects/tasks' && method === 'POST') {
+            return { id: Math.floor(Math.random() * 1000), ...body } as any;
+        }
+        if (endpoint.match(/^\/projects\/\d+\/sprints$/)) {
+            const projectId = endpoint.split('/')[2];
+            return (MOCK_DATA.sprints as any)[projectId] || [] as any;
+        }
+        if (endpoint === '/projects/sprints' && method === 'POST') {
+            return { id: Math.floor(Math.random() * 1000), ...body } as any;
+        }
+        if (endpoint === '/agents/chats' && method === 'GET') {
+            return MOCK_DATA.chats as any;
+        }
+        if (endpoint.match(/^\/agents\/chats\/.*?\/history$/)) {
+            const chatId = endpoint.split('/')[3];
+            return (MOCK_DATA.chatHistory as any)[chatId] || [] as any;
+        }
+        if (endpoint === '/agents/run' && method === 'POST') {
+            return { content: `MOCK AI Response to: ${body?.message || ''}` } as any;
+        }
+
+        return {} as T;
+    }
 
     const defaultHeaders: Record<string, string> = {};
 

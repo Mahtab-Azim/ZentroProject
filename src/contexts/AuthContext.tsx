@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { api } from '@/lib/api-client'
+
 interface AuthContextType {
   isAuthenticated: boolean
   login: (token: string) => void
@@ -28,16 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserInfo = async (token: string) => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/users/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
-      }
+      const userData = await api.auth.me(token)
+      setUser(userData)
     } catch (error) {
       console.error('Error fetching user info:', error)
     }
