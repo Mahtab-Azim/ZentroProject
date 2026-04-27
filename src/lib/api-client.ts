@@ -25,6 +25,9 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
         if (endpoint === '/users/me' || endpoint.startsWith('/users/')) {
             return MOCK_DATA.user as any;
         }
+        if (endpoint === '/auth/forgot-password' && method === 'POST') {
+            return { message: 'Password reset link sent to email' } as any;
+        }
         if (endpoint === '/projects' && method === 'GET') {
             return MOCK_DATA.projects as any;
         }
@@ -105,6 +108,7 @@ export const api = {
             const target = (userId && userId !== 'undefined' && userId !== 'null') ? userId : 'me';
             return request<any>(`/users/${target}`, { method: 'PATCH', body: data, token });
         },
+        forgotPassword: (data: any) => request<any>('/auth/forgot-password', { method: 'POST', body: data }),
     },
     projects: {
         list: (token: string) => request<any[]>('/projects', { token }),
