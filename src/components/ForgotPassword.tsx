@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import Link from "next/link"
 import { AuthBackground } from "@/components/auth/AuthBackground"
+import { api } from '@/lib/api-client'
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("")
@@ -24,23 +25,10 @@ export default function ForgotPasswordPage() {
         setError("")
 
         try {
-            const response = await fetch('/api/auth/forgot-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email }),
-            })
-
-            const data = await response.json()
-
-            if (response.ok) {
-                setIsSubmitted(true)
-            } else {
-                setError(data.error || "خطایی رخ داده است")
-            }
-        } catch (err) {
-            setError("خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید")
+            await api.auth.forgotPassword({ email })
+            setIsSubmitted(true)
+        } catch (err: any) {
+            setError(err.message || "خطایی رخ داده است")
         } finally {
             setIsLoading(false)
         }

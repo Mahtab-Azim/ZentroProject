@@ -4,6 +4,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api-client'
 
+import { api } from '@/lib/api-client'
+
 interface AuthContextType {
   isAuthenticated: boolean
   login: (token: string) => void

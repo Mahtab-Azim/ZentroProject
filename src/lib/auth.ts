@@ -1,7 +1,8 @@
 import NextAuth, { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 // import { providers } from "./auth/provider";
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+import { api } from "./api-client";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -16,26 +17,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 if (!credentials?.email || !credentials?.password) return null;
                 const { email, password } = credentials;
 
-                const loginResponse = await fetch(`${BASE_URL}/token`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username: email, password }),
-                });
+                try {
+                    const formBody = new URLSearchParams();
+                    formBody.append("username", email as string);
+                    formBody.append("password", password as string);
 
-                if (!loginResponse.ok) throw new Error("احراز هویت ناموفق بود");
+                    const loginData = await api.auth.login(formBody);
+                    const token = loginData.access_token;
 
-                const loginData = await loginResponse.json();
-                const token = loginData.access_token;
+                    const user = await api.auth.me(token);
 
-                const userResponse = await fetch(`${BASE_URL}/users/me`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                if (!userResponse.ok) throw new Error("دریافت اطلاعات کاربر ناموفق بود");
-
-                const user = await userResponse.json();
-
-                return { ...user, token };
+                    return { ...user, token };
+                } catch (error) {
+                    console.error("Auth error:", error);
+                    throw new Error("احراز هویت یا دریافت اطلاعات ناموفق بود. " + (error as any)?.message);
+                }
             },
         }),
     ],
